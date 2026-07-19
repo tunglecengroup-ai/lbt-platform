@@ -47,6 +47,16 @@ export function timeAgo(iso: string, now = new Date("2026-07-20T12:00:00Z")) {
   return formatDate(iso);
 }
 
+/** 754 -> "12:34" ; 3900 -> "1:05:00" */
+export function formatDuration(totalSeconds: number) {
+  const s = Math.max(0, Math.round(totalSeconds));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return h > 0 ? `${h}:${pad(m)}:${pad(sec)}` : `${m}:${pad(sec)}`;
+}
+
 export function initials(name: string) {
   const parts = name.trim().split(/\s+/);
   const last = parts[parts.length - 1] ?? "";

@@ -2,37 +2,43 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 /**
- * Cổng bảo vệ toàn bộ ứng dụng bằng 1 mật khẩu dùng chung (back-office).
- * - Chưa đăng nhập -> đá về /login.
- * - Cookie hợp lệ khi giá trị khớp APP_SESSION_SECRET (đặt trong biến môi trường).
- * Khi nối auth thật (Supabase) sau này thì thay logic ở đây.
+ * Cổng bảo vệ KÉP — 2 khu tách biệt:
+ *  • Khu HỌC VIÊN  (/hoc/*)  -> cần cookie "student_session" (đăng nhập ở /hoc/dang-nhap)
+ *  • Khu ADMIN     (còn lại) -> cần cookie "lbt_session" khớp APP_SESSION_SECRET (đăng nhập ở /login)
+ * Khi nối Supabase Auth thật cho học viên thì thay phần student ở đây.
  */
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Cho qua trang đăng nhập và 2 API auth
+  // Các endpoint auth và trang đăng nhập -> cho qua
   if (
+    pathname.startsWith("/api/") ||
     pathname === "/login" ||
-    pathname === "/api/login" ||
-    pathname === "/api/logout"
+    pathname === "/hoc/dang-nhap"
   ) {
     return NextResponse.next();
   }
 
+  // ----- Khu học viên -----
+  if (pathname === "/hoc" || pathname.startsWith("/hoc/")) {
+    const student = request.cookies.get("student_session")?.value;
+    if (student) return NextResponse.next();
+    const url = new URL("/hoc/dang-nhap", request.url);
+    url.searchParams.set("from", pathname);
+    return NextResponse.redirect(url);
+  }
+
+  // ----- Khu admin -----
   const secret = process.env.APP_SESSION_SECRET;
   const session = request.cookies.get("lbt_session")?.value;
-
-  // Nếu chưa cấu hình secret thì coi như mở khóa (tránh tự khóa mình khi quên set)
   if (!secret || session === secret) {
     return NextResponse.next();
   }
-
   const loginUrl = new URL("/login", request.url);
   loginUrl.searchParams.set("from", pathname);
   return NextResponse.redirect(loginUrl);
 }
 
 export const config = {
-  // Chạy cho mọi route trừ static/asset
   matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"],
 };
