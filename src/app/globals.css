@@ -1,0 +1,146 @@
+@import "tailwindcss";
+
+/* ---------------------------------------------------------------
+   LBT Platform — design tokens
+   Kiến trúc 3 lớp: primitive -> semantic -> component.
+   Màu lưu dạng HSL không bọc hàm để dùng được opacity modifier
+   (vd: bg-primary/50).
+   --------------------------------------------------------------- */
+
+:root {
+  --background: 210 20% 98%;
+  --foreground: 222 47% 11%;
+
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+
+  --muted: 220 14% 96%;
+  --muted-foreground: 220 9% 43%;
+
+  --border: 220 13% 91%;
+  --input: 220 13% 91%;
+  --ring: 217 91% 60%;
+
+  --primary: 221 83% 53%;
+  --primary-hover: 224 76% 45%;
+  --primary-foreground: 0 0% 100%;
+
+  --secondary: 220 14% 96%;
+  --secondary-foreground: 222 47% 11%;
+
+  --success: 142 72% 33%;
+  --success-soft: 141 79% 95%;
+  --warning: 32 95% 38%;
+  --warning-soft: 48 96% 92%;
+  --danger: 0 72% 45%;
+  --danger-soft: 0 86% 97%;
+  --info: 221 83% 53%;
+  --info-soft: 214 95% 95%;
+  --violet: 262 83% 55%;
+  --violet-soft: 251 91% 96%;
+
+  --radius: 0.625rem;
+}
+
+.dark {
+  --background: 224 71% 4%;
+  --foreground: 210 20% 98%;
+
+  --card: 222 47% 8%;
+  --card-foreground: 210 20% 98%;
+
+  --muted: 215 28% 15%;
+  --muted-foreground: 218 11% 68%;
+
+  --border: 215 28% 18%;
+  --input: 215 28% 18%;
+  --ring: 217 91% 60%;
+
+  --primary: 217 91% 60%;
+  --primary-hover: 213 94% 68%;
+  --primary-foreground: 224 71% 4%;
+
+  --secondary: 215 28% 15%;
+  --secondary-foreground: 210 20% 98%;
+
+  --success: 142 69% 58%;
+  --success-soft: 143 45% 13%;
+  --warning: 48 96% 61%;
+  --warning-soft: 38 50% 14%;
+  --danger: 0 84% 68%;
+  --danger-soft: 0 45% 16%;
+  --info: 213 94% 68%;
+  --info-soft: 215 50% 16%;
+  --violet: 255 92% 76%;
+  --violet-soft: 258 45% 17%;
+}
+
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-primary: hsl(var(--primary));
+  --color-primary-hover: hsl(var(--primary-hover));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-success: hsl(var(--success));
+  --color-success-soft: hsl(var(--success-soft));
+  --color-warning: hsl(var(--warning));
+  --color-warning-soft: hsl(var(--warning-soft));
+  --color-danger: hsl(var(--danger));
+  --color-danger-soft: hsl(var(--danger-soft));
+  --color-info: hsl(var(--info));
+  --color-info-soft: hsl(var(--info-soft));
+  --color-violet: hsl(var(--violet));
+  --color-violet-soft: hsl(var(--violet-soft));
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+
+  --font-sans: var(--font-sans-vn), ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Focus ring luôn hiện — không bao giờ tắt outline */
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+}
+
+/* Số liệu bảng/KPI dùng tabular figures để không nhảy layout */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--border)) transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
