@@ -18,10 +18,22 @@ npm run dev      # http://localhost:3000
 
 Tạo file `.env.local` (đã được gitignore) hoặc khai báo trên Vercel:
 
-| Biến                 | Ý nghĩa                                                        |
-| -------------------- | ------------------------------------------------------------- |
-| `APP_PASSWORD`       | Mật khẩu để đăng nhập vào phần mềm                             |
-| `APP_SESSION_SECRET` | Chuỗi ngẫu nhiên dài dùng ký cookie phiên (đừng để lộ)        |
+| Biến                            | Ý nghĩa                                                     |
+| ------------------------------- | ----------------------------------------------------------- |
+| `APP_PASSWORD`                  | Mật khẩu đăng nhập **khu admin**                            |
+| `APP_SESSION_SECRET`            | Chuỗi ngẫu nhiên dài ký cookie phiên admin (đừng để lộ)     |
+| `NEXT_PUBLIC_SUPABASE_URL`      | URL project Supabase (công khai)                            |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Khóa anon Supabase (công khai, RLS bảo vệ dữ liệu)          |
+| `SUPABASE_SERVICE_ROLE_KEY`     | Khóa quyền cao — **BÍ MẬT**, chỉ dùng phía server khu admin |
+
+## Cài đặt database (Supabase)
+
+1. Tạo project tại [supabase.com](https://supabase.com) (miễn phí), region Singapore.
+2. **SQL Editor → New query** → dán toàn bộ `supabase/schema.sql` → **Run**.
+3. Chạy tiếp `supabase/seed.sql` để có sẵn 2 khóa học mẫu.
+4. **Project Settings → API** → copy 3 giá trị vào `.env.local` và Vercel.
+
+> ⚠️ `seed.sql` chạy lại sẽ xóa & tạo lại chương/bài (mất tiến độ đã ghi). Chỉ chạy lúc khởi tạo.
 
 Ví dụ:
 
