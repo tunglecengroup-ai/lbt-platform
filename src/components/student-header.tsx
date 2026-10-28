@@ -2,13 +2,14 @@ import Link from "next/link";
 import { GraduationCap, LogOut } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Avatar } from "@/components/ui/avatar";
-import { currentStudent } from "@/lib/lms-data";
+import { getStudent } from "@/lib/learning";
 
-export function StudentHeader() {
+export async function StudentHeader() {
+  const currentStudent = await getStudent();
   return (
     <header className="bg-card/80 sticky top-0 z-30 border-b backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center gap-4 px-4 py-3 md:px-6">
-        <Link href="/hoc" className="flex items-center gap-2.5">
+        <Link href="/" className="flex items-center gap-2.5">
           <span className="bg-primary text-primary-foreground flex size-9 items-center justify-center rounded-lg font-bold">
             LBT
           </span>

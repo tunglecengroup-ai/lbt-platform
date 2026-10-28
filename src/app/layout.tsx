@@ -10,9 +10,8 @@ const beVietnam = Be_Vietnam_Pro({
 });
 
 export const metadata: Metadata = {
-  title: "LBT Platform — Quản lý học viên & khách hàng",
-  description:
-    "Hệ thống quản lý học viên (LMS) và khách hàng (CRM) cho Học viện Lê Bá Tùng.",
+  title: "Học viện Lê Bá Tùng",
+  description: "Khóa học online quảng cáo Facebook & marketing thực chiến cùng Lê Bá Tùng.",
 };
 
 // Chống nhấp nháy theme: đặt class .dark trước khi React hydrate

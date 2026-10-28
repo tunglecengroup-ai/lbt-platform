@@ -2,9 +2,9 @@
 
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Mail, LoaderCircle, GraduationCap } from "lucide-react";
+import { Mail, LoaderCircle, GraduationCap, KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { currentStudent } from "@/lib/lms-data";
+import { createBrowserSupabase } from "@/lib/supabase/client";
 
 export default function StudentLoginPage() {
   return (
@@ -14,35 +14,58 @@ export default function StudentLoginPage() {
   );
 }
 
+const inputClass =
+  "bg-background focus:border-primary focus:ring-primary/20 h-11 w-full rounded-md border pr-3 pl-9 text-sm outline-none focus:ring-2";
+
+/**
+ * Đăng nhập không mật khẩu: nhập email -> Supabase gửi mã 6 số -> nhập mã là vào.
+ * (Email cũng có link đăng nhập, bấm link đi qua /auth/confirm.)
+ */
 function StudentLoginForm() {
   const router = useRouter();
   const params = useSearchParams();
-  const [email, setEmail] = useState("");
-  const [error, setError] = useState("");
+  const from = params.get("from") || "/hoc";
+  const [email, setEmail] = useState(params.get("email") ?? "");
+  const [code, setCode] = useState("");
+  const [step, setStep] = useState<"email" | "code">("email");
+  const [error, setError] = useState(params.get("error") ? "Link đăng nhập đã hết hạn, vui lòng lấy mã mới" : "");
   const [loading, setLoading] = useState(false);
 
-  async function login(value: string) {
+  async function sendCode() {
     setError("");
     setLoading(true);
-    try {
-      const res = await fetch("/api/hoc/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: value }),
-      });
-      const data = await res.json();
-      if (data.ok) {
-        const from = params.get("from") || "/hoc";
-        router.replace(from);
-        router.refresh();
-      } else {
-        setError(data.error || "Đăng nhập thất bại");
-        setLoading(false);
-      }
-    } catch {
-      setError("Không kết nối được máy chủ");
-      setLoading(false);
+    const supabase = createBrowserSupabase();
+    const { error } = await supabase.auth.signInWithOtp({
+      email: email.trim().toLowerCase(),
+      options: {
+        shouldCreateUser: true,
+        emailRedirectTo: `${window.location.origin}/auth/confirm?next=${encodeURIComponent(from)}`,
+      },
+    });
+    setLoading(false);
+    if (error) {
+      setError(error.status === 429 ? "Bạn gửi mã quá nhanh, đợi 1 phút rồi thử lại" : "Không gửi được mã: " + error.message);
+      return;
     }
+    setStep("code");
+  }
+
+  async function verifyCode() {
+    setError("");
+    setLoading(true);
+    const supabase = createBrowserSupabase();
+    const { error } = await supabase.auth.verifyOtp({
+      email: email.trim().toLowerCase(),
+      token: code.trim(),
+      type: "email",
+    });
+    if (error) {
+      setLoading(false);
+      setError("Mã không đúng hoặc đã hết hạn");
+      return;
+    }
+    router.replace(from);
+    router.refresh();
   }
 
   return (
@@ -54,75 +77,55 @@ function StudentLoginForm() {
           </span>
           <h1 className="text-xl font-semibold tracking-tight">Học viện Lê Bá Tùng</h1>
           <p className="text-muted-foreground mt-1 text-sm">
-            Đăng nhập để vào khu học tập
+            {step === "email" ? "Đăng nhập để vào khu học tập" : `Mã đăng nhập đã gửi tới ${email}`}
           </p>
         </div>
 
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            login(email);
+            if (step === "email") sendCode();
+            else verifyCode();
           }}
           className="bg-card space-y-4 rounded-lg border p-6 shadow-sm"
         >
-          <div>
-            <label htmlFor="email" className="mb-1.5 block text-sm font-medium">
-              Email học viên
-            </label>
-            <div className="relative">
-              <Mail className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoFocus
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="ban@email.com"
-                className="bg-background focus:border-primary focus:ring-primary/20 h-11 w-full rounded-md border pr-3 pl-9 text-sm outline-none focus:ring-2"
-              />
+          {step === "email" ? (
+            <div>
+              <label htmlFor="email" className="mb-1.5 block text-sm font-medium">Email đã đăng ký học</label>
+              <div className="relative">
+                <Mail className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+                <input id="email" type="email" required autoFocus autoComplete="email" value={email}
+                  onChange={(e) => setEmail(e.target.value)} placeholder="ban@email.com" className={inputClass} />
+              </div>
             </div>
-          </div>
+          ) : (
+            <div>
+              <label htmlFor="code" className="mb-1.5 block text-sm font-medium">Mã xác nhận trong email</label>
+              <div className="relative">
+                <KeyRound className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+                <input id="code" inputMode="numeric" required autoFocus autoComplete="one-time-code" value={code}
+                  onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 8))}
+                  placeholder="Nhập mã số" className={`${inputClass} tracking-[0.3em]`} />
+              </div>
+              <p className="text-muted-foreground mt-1.5 text-xs">Không thấy email? Kiểm tra mục Spam / Quảng cáo.</p>
+            </div>
+          )}
 
           {error && (
-            <p role="alert" className="text-danger bg-danger-soft rounded-md px-3 py-2 text-sm">
-              {error}
-            </p>
+            <p role="alert" className="text-danger bg-danger-soft rounded-md px-3 py-2 text-sm">{error}</p>
           )}
 
           <Button type="submit" disabled={loading} className="h-11 w-full">
-            {loading ? (
-              <>
-                <LoaderCircle className="size-4 animate-spin" /> Đang vào…
-              </>
-            ) : (
-              "Đăng nhập"
-            )}
+            {loading ? <LoaderCircle className="size-4 animate-spin" /> : step === "email" ? "Gửi mã đăng nhập" : "Đăng nhập"}
           </Button>
 
-          <div className="relative py-1 text-center">
-            <span className="bg-card text-muted-foreground relative z-10 px-2 text-xs">
-              hoặc
-            </span>
-            <span className="absolute inset-x-0 top-1/2 border-t" />
-          </div>
-
-          <Button
-            type="button"
-            variant="outline"
-            disabled={loading}
-            onClick={() => login(currentStudent.email)}
-            className="h-11 w-full"
-          >
-            Vào thử với tài khoản demo
-          </Button>
+          {step === "code" && (
+            <button type="button" onClick={() => { setStep("email"); setCode(""); }}
+              className="text-muted-foreground hover:text-foreground w-full text-center text-xs">
+              Đổi email / gửi lại mã
+            </button>
+          )}
         </form>
-
-        <p className="text-muted-foreground mt-4 text-center text-xs">
-          Bản demo — nhập email bất kỳ là vào được. Khi hoàn thiện sẽ đăng nhập
-          bằng Google / mật khẩu thật.
-        </p>
       </div>
     </div>
   );

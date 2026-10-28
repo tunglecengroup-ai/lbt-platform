@@ -147,3 +147,21 @@ insert into public.lesson_resources (lesson_id, label, href, position)
 select l.id, 'File hướng dẫn gắn Pixel (Drive)', 'https://drive.google.com/', 1
 from public.lessons l
 where l.title = 'Cài Pixel & Conversion API';
+
+-- ---------- Nội dung trang bán ----------
+update public.courses set
+  description = 'Khóa học thực chiến giúp bạn tự tay lên chiến dịch Facebook Ads ra đơn: từ dựng nền tảng tài khoản an toàn, cài Pixel, lên camp đầu tiên đến đọc số và scale. Học qua video, làm theo từng bước, có checklist đi kèm.',
+  compare_price_vnd = 499000,
+  outcomes = array[
+    'Dựng Business Manager + tài khoản quảng cáo chuẩn, hạn chế bị khóa',
+    'Cài Pixel & Conversion API đo đúng đơn hàng',
+    'Lên chiến dịch đầu tiên theo cấu trúc 1-3-1',
+    'Đọc chỉ số và biết khi nào tắt, giữ hay scale'
+  ]
+where slug = 'fb-ads-cam-tay';
+
+update public.courses set
+  description = 'Dành cho người đã chạy ads ổn định, muốn tăng ngân sách mà không vỡ hiệu quả.',
+  compare_price_vnd = 6990000,
+  outcomes = array['Cấu trúc CBO cho ngân sách lớn', 'Quản trị nhiều tài khoản', 'Phân bổ ngân sách theo ROAS thật']
+where slug = 'combo-ads-pro';

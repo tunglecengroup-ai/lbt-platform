@@ -1,42 +1,42 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { refreshStudentSession } from "@/lib/supabase/proxy";
 
 /**
- * Cổng bảo vệ KÉP — 2 khu tách biệt:
- *  • Khu HỌC VIÊN  (/hoc/*)  -> cần cookie "student_session" (đăng nhập ở /hoc/dang-nhap)
- *  • Khu ADMIN     (còn lại) -> cần cookie "lbt_session" khớp APP_SESSION_SECRET (đăng nhập ở /login)
- * Khi nối Supabase Auth thật cho học viên thì thay phần student ở đây.
+ * Cổng bảo vệ — 3 khu:
+ *  • Công khai     (/, /khoa-hoc, /don-hang, /api/webhooks…) -> ai cũng vào được
+ *  • Khu HỌC VIÊN  (/hoc/*)   -> cần phiên Supabase Auth (đăng nhập bằng mã email ở /hoc/dang-nhap)
+ *  • Khu ADMIN     (/admin/*) -> cần cookie "lbt_session" khớp APP_SESSION_SECRET (đăng nhập ở /admin/login)
  */
-export function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Các endpoint auth và trang đăng nhập -> cho qua
-  if (
-    pathname.startsWith("/api/") ||
-    pathname === "/login" ||
-    pathname === "/hoc/dang-nhap"
-  ) {
-    return NextResponse.next();
+  // ----- Khu admin -----
+  if (pathname === "/admin" || pathname.startsWith("/admin/")) {
+    if (pathname === "/admin/login") return NextResponse.next();
+    const secret = process.env.APP_SESSION_SECRET;
+    const session = request.cookies.get("lbt_session")?.value;
+    if (!secret || session === secret) return NextResponse.next();
+    const loginUrl = new URL("/admin/login", request.url);
+    loginUrl.searchParams.set("from", pathname);
+    return NextResponse.redirect(loginUrl);
   }
+
+  // Webhook ngân hàng không mang cookie -> khỏi làm mới phiên
+  if (pathname.startsWith("/api/webhooks/")) return NextResponse.next();
+
+  const { response, user } = await refreshStudentSession(request);
 
   // ----- Khu học viên -----
-  if (pathname === "/hoc" || pathname.startsWith("/hoc/")) {
-    const student = request.cookies.get("student_session")?.value;
-    if (student) return NextResponse.next();
-    const url = new URL("/hoc/dang-nhap", request.url);
-    url.searchParams.set("from", pathname);
-    return NextResponse.redirect(url);
+  if ((pathname === "/hoc" || pathname.startsWith("/hoc/")) && pathname !== "/hoc/dang-nhap") {
+    if (!user) {
+      const url = new URL("/hoc/dang-nhap", request.url);
+      url.searchParams.set("from", pathname);
+      return NextResponse.redirect(url);
+    }
   }
 
-  // ----- Khu admin -----
-  const secret = process.env.APP_SESSION_SECRET;
-  const session = request.cookies.get("lbt_session")?.value;
-  if (!secret || session === secret) {
-    return NextResponse.next();
-  }
-  const loginUrl = new URL("/login", request.url);
-  loginUrl.searchParams.set("from", pathname);
-  return NextResponse.redirect(loginUrl);
+  return response;
 }
 
 export const config = {

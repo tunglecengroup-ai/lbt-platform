@@ -1,6 +1,11 @@
 # LBT Platform
 
-Phần mềm quản trị **học viên (LMS)** và **khách hàng (CRM)** cho Học viện Lê Bá Tùng.
+Web học trực tuyến (thay Edubit) + quản trị **học viên (LMS)** và **khách hàng (CRM)** cho Học viện Lê Bá Tùng.
+
+> 📘 Hướng dẫn đưa lên mạng từng bước: [`docs/huong-dan-trien-khai.md`](docs/huong-dan-trien-khai.md)
+
+**3 khu:** `/` trang bán khóa công khai · `/hoc` khu học viên (đăng nhập bằng mã email) · `/admin` quản trị (mật khẩu).
+**Luồng mua:** trang khóa → điền thông tin → quét VietQR → SePay báo tiền về `/api/webhooks/sepay` → tự tạo tài khoản + mở khóa → học viên đăng nhập bằng email.
 Next.js 16 (App Router) · Tailwind v4 · recharts · lucide-react.
 
 > ⚠️ Đây là khu vực **quản trị nội bộ**, có dữ liệu khách hàng. Luôn đặt sau lớp
@@ -53,9 +58,6 @@ Nếu **không** đặt 2 biến này, cổng đăng nhập sẽ mở khóa (ti�
 - `src/lib/mock-data.ts` — **dữ liệu giả lập**; thay bằng query Supabase khi nối backend thật
 - `src/components/` — bộ UI (card, badge, button, chart…) theo design token 3 lớp trong `globals.css`
 
-## Deploy (Vercel)
+## Deploy
 
-1. Đẩy repo lên GitHub (private).
-2. Vercel → Import repo → framework tự nhận Next.js → Deploy.
-3. Settings → Environment Variables: thêm `APP_PASSWORD`, `APP_SESSION_SECRET`.
-4. Settings → Domains: thêm `app.lebatung.com`, làm theo bản ghi CNAME Vercel chỉ dẫn.
+Bản miễn phí: Netlify + Supabase + YouTube + Resend + SePay — xem [`docs/huong-dan-trien-khai.md`](docs/huong-dan-trien-khai.md).

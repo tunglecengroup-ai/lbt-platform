@@ -32,7 +32,7 @@ function LoginForm() {
       });
       const data = await res.json();
       if (data.ok) {
-        const from = params.get("from") || "/";
+        const from = params.get("from") || "/admin";
         router.replace(from);
         router.refresh();
       } else {

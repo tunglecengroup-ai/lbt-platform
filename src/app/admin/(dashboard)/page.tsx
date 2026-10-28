@@ -89,7 +89,7 @@ export default function OverviewPage() {
           <Card className="lg:col-span-2">
             <CardHeader>
               <CardTitle>Học viên mới nhất</CardTitle>
-              <Link href="/students" className="text-primary inline-flex items-center gap-1 text-sm font-medium hover:underline">
+              <Link href="/admin/students" className="text-primary inline-flex items-center gap-1 text-sm font-medium hover:underline">
                 Xem tất cả <ArrowRight className="size-4" />
               </Link>
             </CardHeader>
@@ -152,7 +152,7 @@ export default function OverviewPage() {
           <SectionTitle
             title="Phễu bán hàng"
             action={
-              <Link href="/crm" className="text-primary inline-flex items-center gap-1 text-sm font-medium hover:underline">
+              <Link href="/admin/crm" className="text-primary inline-flex items-center gap-1 text-sm font-medium hover:underline">
                 Mở CRM <ArrowRight className="size-4" />
               </Link>
             }

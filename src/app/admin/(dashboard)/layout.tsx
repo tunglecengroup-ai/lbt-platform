@@ -1,3 +1,8 @@
+// Dữ liệu admin luôn đọc mới từ DB, không render tĩnh lúc build
+export const dynamic = "force-dynamic";
+
+export const metadata = { title: "LBT Platform — Quản trị", robots: { index: false } };
+
 import { Sidebar } from "@/components/sidebar";
 
 export default function DashboardLayout({

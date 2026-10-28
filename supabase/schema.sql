@@ -236,3 +236,64 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
+
+
+-- =============================================================
+-- PHẦN 5 — WEB HỌC THAY EDUBIT (bán khóa + VietQR + Bunny Stream)
+-- Chạy được trên DB cũ lẫn mới (add column if not exists)
+-- =============================================================
+
+-- Khóa học: ảnh bìa, giá gạch, "bạn sẽ học được", thời hạn, list GetResponse
+alter table public.courses add column if not exists cover_url text;
+alter table public.courses add column if not exists compare_price_vnd integer;
+alter table public.courses add column if not exists outcomes text[] default '{}';
+alter table public.courses add column if not exists access_days integer;      -- NULL = học trọn đời
+alter table public.courses add column if not exists gr_campaign_id text;      -- list GetResponse khi mua xong
+
+-- Bài học: video Bunny Stream + ghi chú bài
+alter table public.lessons add column if not exists bunny_video_id text;
+alter table public.lessons add column if not exists content text;
+
+-- Đơn hàng: mã chuyển khoản (nội dung CK) để đối soát tự động
+alter table public.orders add column if not exists code text;
+alter table public.orders add column if not exists note text;
+create unique index if not exists orders_code_key on public.orders(code);
+
+-- Admin không chạy được tiến độ học viên nếu thiếu index này
+create index if not exists enrollments_course_idx on public.enrollments(course_id);
+create index if not exists profiles_email_idx on public.profiles(lower(email));
+
+-- 10. PAYMENT EVENTS — log mọi webhook ngân hàng (chống xử lý trùng + tra soát)
+create table if not exists public.payment_events (
+  id uuid primary key default gen_random_uuid(),
+  provider text not null default 'sepay',
+  provider_tx_id text not null,
+  amount_vnd integer not null default 0,
+  content text,
+  order_id uuid references public.orders(id) on delete set null,
+  result text,                               -- 'matched' | 'no_order' | 'amount_mismatch' | 'already_paid'
+  raw jsonb,
+  created_at timestamptz default now(),
+  unique (provider, provider_tx_id)
+);
+alter table public.payment_events enable row level security;
+-- Không policy -> chỉ service role đọc/ghi
+
+-- Ẩn ID video + ghi chú bài khỏi khóa anon công khai: chỉ server (service role)
+-- mới đọc được, sau khi đã kiểm tra quyền xem bằng can_watch_lesson.
+revoke select on public.lessons from anon, authenticated;
+grant select (id, chapter_id, course_id, title, duration_seconds, position, is_free_preview, created_at)
+  on public.lessons to anon, authenticated;
+
+-- Học viên đã mua vẫn học được khi khóa bị ẩn khỏi trang bán
+drop policy if exists "courses_select_enrolled" on public.courses;
+create policy "courses_select_enrolled" on public.courses
+  for select using (exists (select 1 from public.enrollments e where e.course_id = courses.id and e.user_id = auth.uid() and e.status = 'active'));
+
+drop policy if exists "chapters_select_enrolled" on public.chapters;
+create policy "chapters_select_enrolled" on public.chapters
+  for select using (exists (select 1 from public.enrollments e where e.course_id = chapters.course_id and e.user_id = auth.uid() and e.status = 'active'));
+
+drop policy if exists "lessons_select_enrolled" on public.lessons;
+create policy "lessons_select_enrolled" on public.lessons
+  for select using (exists (select 1 from public.enrollments e where e.course_id = lessons.course_id and e.user_id = auth.uid() and e.status = 'active'));

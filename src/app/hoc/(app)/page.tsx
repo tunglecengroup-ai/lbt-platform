@@ -4,9 +4,11 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { myCourses, courseStats, resumeLesson, currentStudent } from "@/lib/lms-data";
+import { getMyCourses, getStudent, resumeLesson } from "@/lib/learning";
+import { CourseCover } from "@/components/course-cover";
 
-export default function MyCoursesPage() {
+export default async function MyCoursesPage() {
+  const [currentStudent, myCourses] = await Promise.all([getStudent(), getMyCourses()]);
   const firstName = currentStudent.name.split(" ").pop();
 
   return (
@@ -20,15 +22,26 @@ export default function MyCoursesPage() {
         </p>
       </div>
 
+      {myCourses.length === 0 && (
+        <Card className="p-8 text-center">
+          <p className="font-medium">Bạn chưa có khóa học nào</p>
+          <p className="text-muted-foreground mt-1 text-sm">
+            Nếu đã mua trên Edubit hoặc vừa chuyển khoản, hãy đăng nhập đúng email đã đăng ký hoặc liên hệ hỗ trợ.
+          </p>
+          <Button asChild className="mt-4"><Link href="/#khoa-hoc">Xem các khóa học</Link></Button>
+        </Card>
+      )}
+
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         {myCourses.map((course) => {
-          const { total, done, totalSec, progress } = courseStats(course);
+          const { total, done, totalSec, progress } = course;
           const resume = resumeLesson(course);
           const finished = progress === 100;
           return (
             <Card key={course.slug} className="flex flex-col overflow-hidden">
-              <Link href={`/hoc/${course.slug}`} className={`relative block h-36 bg-gradient-to-br ${course.cover}`}>
-                <div className="absolute inset-0 bg-black/10" />
+              <Link href={`/hoc/${course.slug}`} className="block">
+              <CourseCover course={course} className="h-36">
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-black/0" />
                 <div className="absolute bottom-3 left-4 right-4">
                   <p className="text-xs font-medium text-white/80">{course.instructor}</p>
                   <h2 className="mt-0.5 text-lg font-semibold text-white">{course.title}</h2>
@@ -40,6 +53,7 @@ export default function MyCoursesPage() {
                     </Badge>
                   </div>
                 )}
+              </CourseCover>
               </Link>
 
               <div className="flex flex-1 flex-col p-5">
@@ -67,7 +81,7 @@ export default function MyCoursesPage() {
                 <div className="mt-5 flex-1" />
 
                 <Button asChild className="w-full">
-                  <Link href={`/hoc/${course.slug}/${resume.id}`}>
+                  <Link href={resume ? `/hoc/${course.slug}/${resume.id}` : `/hoc/${course.slug}`}>
                     <PlayCircle className="size-4" />
                     {done === 0 ? "Bắt đầu học" : finished ? "Xem lại" : "Tiếp tục học"}
                   </Link>

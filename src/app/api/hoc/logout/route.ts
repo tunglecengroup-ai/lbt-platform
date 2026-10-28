@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
+import { createServerSupabase } from "@/lib/supabase/server";
 
 export async function GET(request: Request) {
-  const res = NextResponse.redirect(new URL("/hoc/dang-nhap", request.url));
-  res.cookies.set("student_session", "", { path: "/", maxAge: 0 });
-  return res;
+  const supabase = await createServerSupabase();
+  await supabase.auth.signOut();
+  return NextResponse.redirect(new URL("/hoc/dang-nhap", request.url));
 }

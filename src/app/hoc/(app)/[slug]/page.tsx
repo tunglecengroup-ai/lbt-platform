@@ -13,7 +13,8 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { formatDuration } from "@/lib/utils";
-import { getCourse, courseStats, resumeLesson } from "@/lib/lms-data";
+import { getStudentCourse, resumeLesson } from "@/lib/learning";
+import { CourseCover } from "@/components/course-cover";
 
 export default async function CoursePage({
   params,
@@ -21,11 +22,12 @@ export default async function CoursePage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const course = getCourse(slug);
+  const course = await getStudentCourse(slug);
   if (!course) notFound();
 
-  const { total, done, totalSec, progress } = courseStats(course);
+  const { total, done, totalSec, progress } = course;
   const resume = resumeLesson(course);
+  const startHref = resume ? `/hoc/${course.slug}/${resume.id}` : `/hoc/${course.slug}`;
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-8 md:px-6">
@@ -37,8 +39,8 @@ export default async function CoursePage({
       </Link>
 
       {/* Header khóa */}
-      <div className={`relative overflow-hidden rounded-xl bg-gradient-to-br ${course.cover} p-6 md:p-8`}>
-        <div className="absolute inset-0 bg-black/10" />
+      <CourseCover course={course} className="rounded-xl p-6 md:p-8">
+        <div className="absolute inset-0 bg-black/45" />
         <div className="relative">
           <p className="text-sm font-medium text-white/85">{course.instructor}</p>
           <h1 className="mt-1 text-2xl font-semibold text-white md:text-3xl">{course.title}</h1>
@@ -52,7 +54,14 @@ export default async function CoursePage({
             </span>
           </div>
         </div>
-      </div>
+      </CourseCover>
+
+      {!course.enrolled && (
+        <Card className="border-primary/30 bg-primary/5 mt-4 flex flex-col gap-3 p-5 sm:flex-row sm:items-center">
+          <p className="flex-1 text-sm">Bạn đang xem thử. Đăng ký khóa học để mở toàn bộ bài giảng.</p>
+          <Button asChild><Link href={`/khoa-hoc/${course.slug}/mua`}>Đăng ký học</Link></Button>
+        </Card>
+      )}
 
       {/* Thanh tiến độ + tiếp tục */}
       <Card className="mt-4 flex flex-col gap-4 p-5 sm:flex-row sm:items-center">
@@ -66,7 +75,7 @@ export default async function CoursePage({
           <Progress value={progress} />
         </div>
         <Button asChild className="sm:w-auto">
-          <Link href={`/hoc/${course.slug}/${resume.id}`}>
+          <Link href={startHref}>
             <PlayCircle className="size-4" />
             {done === 0 ? "Bắt đầu học" : "Tiếp tục học"}
           </Link>
@@ -76,7 +85,7 @@ export default async function CoursePage({
       {/* Danh sách chương */}
       <div className="mt-8 space-y-6">
         {course.chapters.map((chapter, ci) => {
-          const chDone = chapter.lessons.filter((l) => l.completed).length;
+          const chDone = chapter.lessons.filter((l) => course.completed.has(l.id)).length;
           return (
             <div key={chapter.id}>
               <div className="mb-2 flex items-center justify-between">
@@ -93,7 +102,7 @@ export default async function CoursePage({
                     className="hover:bg-muted/50 flex items-center gap-3 px-4 py-3 transition-colors"
                   >
                     <span className="shrink-0">
-                      {lesson.completed ? (
+                      {course.completed.has(lesson.id) ? (
                         <CheckCircle2 className="text-success size-5" />
                       ) : (
                         <Circle className="text-muted-foreground size-5" />
@@ -107,11 +116,11 @@ export default async function CoursePage({
                         {lesson.title}
                       </p>
                     </div>
-                    {lesson.isFreePreview && (
+                    {lesson.is_free_preview && (
                       <Badge tone="info" className="hidden sm:inline-flex">Học thử</Badge>
                     )}
                     <span className="text-muted-foreground tabular hidden text-xs sm:inline">
-                      {formatDuration(lesson.durationSec)}
+                      {formatDuration(lesson.duration_seconds)}
                     </span>
                     <PlayCircle className="text-muted-foreground size-4 shrink-0" />
                   </Link>

@@ -1,0 +1,7 @@
+# Netlify tự nhận Next.js (adapter OpenNext) — file này chỉ chốt lệnh build + phiên bản Node
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "22"

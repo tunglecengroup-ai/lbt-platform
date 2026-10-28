@@ -1,0 +1,13 @@
+<!-- Mẫu email đăng nhập — dán vào Supabase > Authentication > Emails > Magic Link
+     Tiêu đề (Subject): Mã đăng nhập Học viện Lê Bá Tùng: {{ .Token }} -->
+<div style="font-family:Arial,Helvetica,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#1f2937">
+  <h2 style="margin:0 0 8px">Học viện Lê Bá Tùng</h2>
+  <p>Mã đăng nhập khu học tập của bạn:</p>
+  <p style="font-size:32px;font-weight:bold;letter-spacing:8px;background:#f3f4f6;padding:16px;text-align:center;border-radius:8px">{{ .Token }}</p>
+  <p>Hoặc bấm nút dưới đây để vào học ngay:</p>
+  <p style="text-align:center">
+    <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email&next=/hoc"
+       style="display:inline-block;background:#2563eb;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold">Vào học</a>
+  </p>
+  <p style="color:#6b7280;font-size:13px">Mã có hiệu lực trong 1 giờ. Nếu bạn không yêu cầu đăng nhập, hãy bỏ qua email này.</p>
+</div>

@@ -12,7 +12,7 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <nav className="flex flex-1 flex-col gap-1 px-3">
       {navItems.map((item) => {
-        const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+        const active = item.href === "/admin" ? pathname === "/admin" : pathname.startsWith(item.href);
         const Icon = item.icon;
         return (
           <Link
