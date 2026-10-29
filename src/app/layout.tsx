@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { siteUrl } from "@/lib/site";
 import { Be_Vietnam_Pro } from "next/font/google";
 import "./globals.css";
 
@@ -10,6 +11,7 @@ const beVietnam = Be_Vietnam_Pro({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: "Học viện Lê Bá Tùng",
   description: "Khóa học online quảng cáo Facebook & marketing thực chiến cùng Lê Bá Tùng.",
 };

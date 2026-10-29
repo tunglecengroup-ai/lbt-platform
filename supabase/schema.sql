@@ -297,3 +297,93 @@ create policy "chapters_select_enrolled" on public.chapters
 drop policy if exists "lessons_select_enrolled" on public.lessons;
 create policy "lessons_select_enrolled" on public.lessons
   for select using (exists (select 1 from public.enrollments e where e.course_id = lessons.course_id and e.user_id = auth.uid() and e.status = 'active'));
+
+
+-- =============================================================
+-- PHẦN 6 — CHUYỂN NỐT TỪ EDUBIT: blog, đánh giá, mã kích hoạt
+-- =============================================================
+
+-- 11. POSTS — bài blog (kind 'post', /blog/<slug>) và trang tĩnh (kind 'page', /p/<slug>)
+create table if not exists public.posts (
+  id uuid primary key default gen_random_uuid(),
+  kind text not null default 'post' check (kind in ('post','page')),
+  slug text not null,
+  title text not null,
+  excerpt text,                              -- mô tả SEO + đoạn tóm tắt ở danh sách
+  cover_url text,
+  content_html text not null default '',
+  category text,
+  is_published boolean default false,
+  published_at timestamptz default now(),
+  created_at timestamptz default now(),
+  updated_at timestamptz default now(),
+  unique (kind, slug)
+);
+create index if not exists posts_published_idx on public.posts(kind, is_published, published_at desc);
+alter table public.posts enable row level security;
+
+drop policy if exists "posts_select_published" on public.posts;
+create policy "posts_select_published" on public.posts
+  for select using (is_published = true and published_at <= now());
+
+-- 12. REVIEWS — cảm nhận học viên (course_id NULL = cảm nhận chung, is_featured = hiện ở trang chủ)
+create table if not exists public.reviews (
+  id uuid primary key default gen_random_uuid(),
+  course_id uuid references public.courses(id) on delete cascade,
+  name text not null,
+  role text,                                 -- "Quần áo trẻ em", "Du học"...
+  content text not null,
+  rating smallint not null default 5 check (rating between 1 and 5),
+  is_featured boolean default false,
+  position integer default 0,
+  created_at timestamptz default now()
+);
+create index if not exists reviews_course_idx on public.reviews(course_id);
+alter table public.reviews enable row level security;
+
+drop policy if exists "reviews_select_all" on public.reviews;
+create policy "reviews_select_all" on public.reviews for select using (true);
+
+-- 13. ACTIVATION CODES — mã kích hoạt khóa (bán qua kênh khác, tặng, mã cũ từ Edubit)
+create table if not exists public.activation_codes (
+  id uuid primary key default gen_random_uuid(),
+  code text unique not null,                 -- lưu dạng IN HOA, không dấu gạch/khoảng trắng
+  course_id uuid not null references public.courses(id) on delete cascade,
+  max_uses integer not null default 1,
+  used_count integer not null default 0,
+  note text,
+  expires_at timestamptz,
+  created_at timestamptz default now()
+);
+alter table public.activation_codes enable row level security;
+-- Không policy -> chỉ service role
+
+create table if not exists public.activation_redemptions (
+  id uuid primary key default gen_random_uuid(),
+  code_id uuid not null references public.activation_codes(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  redeemed_at timestamptz default now(),
+  unique (code_id, user_id)
+);
+alter table public.activation_redemptions enable row level security;
+
+-- Dùng mã: khóa dòng để 2 người không cùng lấy lượt cuối. Trả course_id.
+-- Cùng 1 người nhập lại mã đã dùng -> trả course_id, không trừ thêm lượt.
+create or replace function public.claim_activation_code(p_code text, p_user_id uuid)
+returns uuid language plpgsql security definer set search_path = public as $$
+declare
+  c public.activation_codes%rowtype;
+begin
+  select * into c from public.activation_codes where code = p_code for update;
+  if not found then raise exception 'code_not_found'; end if;
+  if exists (select 1 from public.activation_redemptions where code_id = c.id and user_id = p_user_id) then
+    return c.course_id;
+  end if;
+  if c.expires_at is not null and c.expires_at < now() then raise exception 'code_expired'; end if;
+  if c.used_count >= c.max_uses then raise exception 'code_used_up'; end if;
+  insert into public.activation_redemptions (code_id, user_id) values (c.id, p_user_id);
+  update public.activation_codes set used_count = used_count + 1 where id = c.id;
+  return c.course_id;
+end;
+$$;
+revoke execute on function public.claim_activation_code(text, uuid) from public, anon, authenticated;

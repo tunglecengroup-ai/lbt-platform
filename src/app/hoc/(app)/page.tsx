@@ -28,7 +28,10 @@ export default async function MyCoursesPage() {
           <p className="text-muted-foreground mt-1 text-sm">
             Nếu đã mua trên Edubit hoặc vừa chuyển khoản, hãy đăng nhập đúng email đã đăng ký hoặc liên hệ hỗ trợ.
           </p>
-          <Button asChild className="mt-4"><Link href="/#khoa-hoc">Xem các khóa học</Link></Button>
+          <div className="mt-4 flex flex-wrap justify-center gap-2">
+            <Button asChild><Link href="/#khoa-hoc">Xem các khóa học</Link></Button>
+            <Button asChild variant="outline"><Link href="/hoc/kich-hoat">Tôi có mã kích hoạt</Link></Button>
+          </div>
         </Card>
       )}
 

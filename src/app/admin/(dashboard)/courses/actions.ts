@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { assertAdmin } from "@/lib/admin-guard";
 import { createAdminSupabase } from "@/lib/supabase/admin";
+import { slugify } from "@/lib/utils";
 
 const str = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
 const optStr = (f: FormData, k: string) => str(f, k) || null;
@@ -11,17 +12,6 @@ const int = (f: FormData, k: string) => {
   const n = parseInt(str(f, k).replace(/\D/g, ""), 10);
   return Number.isFinite(n) ? n : null;
 };
-
-/** "fb ads cầm tay" -> "fb-ads-cam-tay" */
-function slugify(s: string) {
-  return s
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/đ/gi, "d")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-}
 
 /** "12:34" | "1:02:03" | "754" -> giây */
 function parseDuration(s: string) {

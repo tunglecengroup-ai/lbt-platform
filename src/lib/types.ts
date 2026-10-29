@@ -56,3 +56,28 @@ export type OrderRow = {
 /** Cột bài học an toàn cho anon (không có ID video) */
 export const LESSON_PUBLIC_COLUMNS =
   "id, chapter_id, course_id, title, duration_seconds, position, is_free_preview";
+
+export type PostRow = {
+  id: string;
+  kind: "post" | "page";
+  slug: string;
+  title: string;
+  excerpt: string | null;
+  cover_url: string | null;
+  content_html: string;
+  category: string | null;
+  is_published: boolean;
+  published_at: string;
+  updated_at: string;
+};
+
+export type ReviewRow = {
+  id: string;
+  course_id: string | null;
+  name: string;
+  role: string | null;
+  content: string;
+  rating: number;
+  is_featured: boolean;
+  position: number;
+};

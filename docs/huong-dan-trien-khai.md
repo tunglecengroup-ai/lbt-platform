@@ -17,7 +17,10 @@ Thời gian làm lần đầu: khoảng 60–90 phút. Làm đúng thứ tự d�
 
 1. Vào https://supabase.com → **New project** → Region **Singapore** → đặt mật khẩu DB (lưu lại).
 2. **SQL Editor → New query** → dán toàn bộ `supabase/schema.sql` → **Run**.
-3. (Tùy chọn) chạy `supabase/seed.sql` nếu muốn có 2 khóa mẫu để xem thử.
+3. **New query** → dán toàn bộ `supabase/import-lebatung.sql` → **Run**.
+   File này chứa nội dung chuyển từ lebatung.vn: 5 khóa học (giá, mô tả, mục lục 157 bài), 13 đánh giá + 3 cảm nhận trang chủ,
+   11 bài blog, trang "Lê Bá Tùng là ai" và "Liên hệ". **Chỉ chạy 1 lần** — chạy lại sẽ xóa link video đã dán.
+   (Không chạy `seed.sql` — đó là 2 khóa mẫu giả để thử.)
 4. **Authentication → URL Configuration**
    - Site URL: `https://<tên-miền-của-anh>`
    - Redirect URLs: thêm `https://<tên-miền-của-anh>/**`
@@ -81,6 +84,7 @@ Anh vào **Admin → Đơn hàng**, đối chiếu với app ngân hàng → b�
 | `BANK_ACCOUNT_NO` | số tài khoản nhận tiền |
 | `BANK_ACCOUNT_NAME` | tên chủ tài khoản, IN HOA không dấu |
 | `SEPAY_WEBHOOK_KEY` | chuỗi bí mật đặt ở Bước 4 |
+| `NEXT_PUBLIC_SITE_URL` | tên miền chính, vd `https://lebatung.vn` (dùng cho sitemap + chia sẻ Facebook) |
 | `GETRESPONSE_API_KEY` | (tùy chọn) mua xong tự vào list GetResponse |
 | `GETRESPONSE_DEFAULT_CAMPAIGN_ID` | (tùy chọn) list mặc định |
 
@@ -103,12 +107,28 @@ Anh vào **Admin → Đơn hàng**, đối chiếu với app ngân hàng → b�
 
 ## Bước 7 — Chuyển học viên & khóa từ Edubit
 
-1. **Admin → Khóa học → Tạo khóa học** → điền thông tin trang bán, thêm chương/bài, dán link YouTube.
-2. Trên Edubit: xuất danh sách học viên từng khóa ra Excel (email, họ tên, SĐT).
-3. **Admin → Học viên → Cấp quyền / Nhập từ Edubit** → chọn khóa → copy 3 cột từ Excel dán vào → **Cấp quyền học**.
+Nội dung trang (khóa, mục lục, blog, đánh giá, ảnh) **đã chuyển sẵn** ở Bước 1.3. Còn lại:
+
+1. **Video:** Admin → Khóa học → từng bài → dán link YouTube. Bài nào bên Edubit là "Học thử" đã được bật sẵn học thử.
+2. **Học viên cũ:** trên Edubit xuất danh sách học viên từng khóa ra Excel (email, họ tên, SĐT) →
+   **Admin → Học viên → Cấp quyền / Nhập từ Edubit** → chọn khóa → dán 3 cột → **Cấp quyền học**.
+3. **Mã kích hoạt cũ** (nếu đang bán mã qua kênh khác): **Admin → Mã kích hoạt → Nhập mã có sẵn** → dán danh sách mã.
 4. Mua thử 1 đơn thật (tạm đặt giá khóa 2.000đ) để chắc chắn SePay tự mở khóa.
 5. Báo học viên cũ: "Từ nay vào học tại `https://<tên-miền>/hoc`, đăng nhập bằng email cũ, nhận mã qua email — không cần mật khẩu."
 6. Chạy song song vài ngày, ổn rồi mới tắt Edubit.
+
+### Trỏ tên miền lebatung.vn từ Edubit sang web mới
+Khi trỏ `lebatung.vn` về Netlify (Bước 6), link cũ **tự chuyển** sang trang mới, giữ thứ hạng Google:
+
+| Link cũ (Edubit) | Tự chuyển tới |
+|---|---|
+| `/facebook-ads-chuyen-sau-tu-a-z` (và 4 khóa khác) | `/khoa-hoc/<cùng tên>` |
+| `/blog/<bài>` , `/p/le-ba-tung-la-ai` , `/p/lien-he` | giữ nguyên đường dẫn |
+| `/activated` | `/hoc/kich-hoat` |
+| `/signin` , `/signup` | `/hoc/dang-nhap` |
+| `/courses` , `/category/...` | trang chủ / blog |
+
+Sau khi trỏ xong: vào **Google Search Console** → gửi sitemap `https://lebatung.vn/sitemap.xml`.
 
 ---
 
@@ -119,7 +139,9 @@ Anh vào **Admin → Đơn hàng**, đối chiếu với app ngân hàng → b�
 | Trang chủ / danh sách khóa | `/` |
 | Trang bán 1 khóa | `/khoa-hoc/<slug>` |
 | Khu học viên | `/hoc` |
-| Quản trị | `/admin` |
+| Blog | `/blog` |
+| Kích hoạt khóa bằng mã | `/hoc/kich-hoat` |
+| Quản trị | `/admin` (thêm: Mã kích hoạt, Blog & trang, Cảm nhận học viên) |
 
 ## Khi nào nên trả tiền
 

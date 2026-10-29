@@ -3,7 +3,10 @@ import { BookOpen, Clock, ShieldCheck, Zap, Infinity as InfinityIcon } from "luc
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CourseCover } from "@/components/course-cover";
+import { ReviewCard } from "@/components/review-card";
+import { PostCard } from "@/components/post-card";
 import { listPublishedCourses } from "@/lib/courses";
+import { listFeaturedReviews, listPublishedPosts } from "@/lib/content";
 import { formatVND } from "@/lib/utils";
 
 export const metadata = {
@@ -18,7 +21,11 @@ const perks = [
 ];
 
 export default async function HomePage() {
-  const courses = await listPublishedCourses();
+  const [courses, reviews, posts] = await Promise.all([
+    listPublishedCourses(),
+    listFeaturedReviews(),
+    listPublishedPosts(3),
+  ]);
 
   return (
     <main>
@@ -37,6 +44,9 @@ export default async function HomePage() {
             </Button>
             <Button asChild variant="outline" className="h-11 px-6">
               <Link href="/hoc">Tôi đã có tài khoản</Link>
+            </Button>
+            <Button asChild variant="ghost" className="h-11 px-6">
+              <Link href="/hoc/kich-hoat">Tôi có mã kích hoạt</Link>
             </Button>
           </div>
         </div>
@@ -74,7 +84,7 @@ export default async function HomePage() {
                   {c.subtitle && <p className="text-muted-foreground mt-1 text-sm">{c.subtitle}</p>}
                   <div className="text-muted-foreground mt-3 flex items-center gap-4 text-xs">
                     <span className="inline-flex items-center gap-1"><BookOpen className="size-3.5" /> {c.lessonCount} bài</span>
-                    <span className="inline-flex items-center gap-1"><Clock className="size-3.5" /> {Math.round(c.totalSec / 60)} phút</span>
+                    {c.totalSec > 0 && <span className="inline-flex items-center gap-1"><Clock className="size-3.5" /> {Math.round(c.totalSec / 60)} phút</span>}
                   </div>
                   <div className="flex-1" />
                   <div className="mt-4 flex items-end justify-between gap-2">
@@ -94,6 +104,27 @@ export default async function HomePage() {
           </div>
         )}
       </section>
+
+      {reviews.length > 0 && (
+        <section className="mx-auto mt-16 max-w-6xl px-4 md:px-6">
+          <h2 className="text-2xl font-semibold tracking-tight">Học viên nói gì</h2>
+          <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {reviews.map((r) => <ReviewCard key={r.id} review={r} />)}
+          </div>
+        </section>
+      )}
+
+      {posts.length > 0 && (
+        <section className="mx-auto mt-16 max-w-6xl px-4 md:px-6">
+          <div className="flex items-end justify-between gap-4">
+            <h2 className="text-2xl font-semibold tracking-tight">Bài viết mới</h2>
+            <Link href="/blog" className="text-primary text-sm font-medium">Xem tất cả →</Link>
+          </div>
+          <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {posts.map((p) => <PostCard key={p.id} post={p} />)}
+          </div>
+        </section>
+      )}
     </main>
   );
 }

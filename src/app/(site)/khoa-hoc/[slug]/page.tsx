@@ -5,7 +5,9 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CourseCover } from "@/components/course-cover";
+import { ReviewCard, Stars } from "@/components/review-card";
 import { getPublishedOutline, outlineStats } from "@/lib/courses";
+import { listCourseReviews } from "@/lib/content";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { lessonEmbedUrl } from "@/lib/video";
@@ -24,6 +26,8 @@ export default async function CourseDetailPage({ params }: PageProps<"/khoa-hoc/
   const course = await getPublishedOutline(slug);
   if (!course) notFound();
   const { lessons, total, totalSec } = outlineStats(course);
+  const reviews = await listCourseReviews(course.id);
+  const avgRating = reviews.length ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0;
 
   // Video giới thiệu = bài học thử đầu tiên
   const preview = lessons.find((l) => l.is_free_preview);
@@ -65,8 +69,13 @@ export default async function CourseDetailPage({ params }: PageProps<"/khoa-hoc/
           {course.subtitle && <p className="text-muted-foreground mt-2 text-lg">{course.subtitle}</p>}
           <div className="text-muted-foreground mt-4 flex flex-wrap gap-4 text-sm">
             <span className="inline-flex items-center gap-1.5"><BookOpen className="size-4" /> {total} bài học</span>
-            <span className="inline-flex items-center gap-1.5"><Clock className="size-4" /> {Math.round(totalSec / 60)} phút video</span>
+            {totalSec > 0 && <span className="inline-flex items-center gap-1.5"><Clock className="size-4" /> {Math.round(totalSec / 60)} phút video</span>}
             <span>{course.access_days ? `Truy cập ${course.access_days} ngày` : "Học trọn đời"}</span>
+            {reviews.length > 0 && (
+              <span className="inline-flex items-center gap-1.5">
+                <Stars value={avgRating} /> {avgRating.toFixed(1)} ({reviews.length} đánh giá)
+              </span>
+            )}
           </div>
 
           <div className="mt-6 overflow-hidden rounded-xl">
@@ -121,7 +130,7 @@ export default async function CourseDetailPage({ params }: PageProps<"/khoa-hoc/
                         )}
                         <span className="min-w-0 flex-1">{l.title}</span>
                         {l.is_free_preview && <Badge tone="info">Học thử</Badge>}
-                        <span className="text-muted-foreground tabular text-xs">{formatDuration(l.duration_seconds)}</span>
+                        {l.duration_seconds > 0 && <span className="text-muted-foreground tabular text-xs">{formatDuration(l.duration_seconds)}</span>}
                       </li>
                     ))}
                   </ul>
@@ -129,6 +138,15 @@ export default async function CourseDetailPage({ params }: PageProps<"/khoa-hoc/
               ))}
             </div>
           </section>
+
+          {reviews.length > 0 && (
+            <section className="mt-8">
+              <h2 className="text-xl font-semibold">Học viên đánh giá</h2>
+              <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                {reviews.map((r) => <ReviewCard key={r.id} review={r} />)}
+              </div>
+            </section>
+          )}
         </div>
 
         <aside className="lg:sticky lg:top-20 lg:self-start">

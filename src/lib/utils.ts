@@ -63,3 +63,14 @@ export function initials(name: string) {
   const first = parts.length > 1 ? parts[parts.length - 2] : "";
   return (first.charAt(0) + last.charAt(0)).toUpperCase();
 }
+
+/** "fb ads cầm tay" -> "fb-ads-cam-tay" */
+export function slugify(s: string) {
+  return s
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/đ/gi, "d")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
