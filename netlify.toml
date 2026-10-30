@@ -5,3 +5,5 @@
 
 [build.environment]
   NODE_VERSION = "22"
+  # Biến NEXT_PUBLIC_* vốn được nhúng vào code trình duyệt — không phải bí mật, bỏ qua khi Netlify quét lộ khóa
+  SECRETS_SCAN_OMIT_KEYS = "NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_ANON_KEY,NEXT_PUBLIC_SITE_URL"
