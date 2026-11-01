@@ -18,7 +18,7 @@ const nextConfig: NextConfig = {
       { source: "/category/:cat", destination: "/blog", permanent: true },
       { source: "/activated", destination: "/hoc/kich-hoat", permanent: true },
       { source: "/signin", destination: "/hoc/dang-nhap", permanent: true },
-      { source: "/signup", destination: "/hoc/dang-nhap", permanent: true },
+      { source: "/signup", destination: "/hoc/dang-ky", permanent: true },
       { source: "/cart", destination: "/#khoa-hoc", permanent: false },
     ];
   },

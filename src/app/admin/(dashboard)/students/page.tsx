@@ -1,4 +1,4 @@
-import { GraduationCap, UserCheck, Trophy } from "lucide-react";
+import { GraduationCap, UserCheck, Trophy, UserPlus } from "lucide-react";
 import { Topbar, MobileHeading } from "@/components/topbar";
 import { PageBody } from "@/components/ui/page";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -28,7 +28,7 @@ export default async function StudentsPage({ searchParams }: PageProps<"/admin/s
   const [{ data: courses }, { data: enrollments }, { data: profiles }, { data: lessons }, { data: progress }] = await Promise.all([
     db.from("courses").select("id, title").order("position"),
     db.from("enrollments").select("*").order("enrolled_at", { ascending: false }).limit(1000),
-    db.from("profiles").select("id, email, full_name, phone"),
+    db.from("profiles").select("id, email, full_name, phone, created_at").order("created_at", { ascending: false }),
     db.from("lessons").select("course_id"),
     db.from("progress").select("user_id, course_id").not("completed_at", "is", null),
   ]);
@@ -49,19 +49,27 @@ export default async function StudentsPage({ searchParams }: PageProps<"/admin/s
   const active = rows.filter((r) => r.status === "active");
   const uniqueStudents = new Set(active.map((r) => r.user_id)).size;
 
+  // Tự đăng ký ở /hoc/dang-ky nhưng chưa có khóa nào = khách tiềm năng để chăm sóc
+  const enrolledIds = new Set((enrollments ?? []).map((e) => e.user_id));
+  const signups = (profiles ?? [])
+    .filter((p) => !enrolledIds.has(p.id))
+    .filter((p) => !q || `${p.email} ${p.full_name} ${p.phone}`.toLowerCase().includes(q));
+
   return (
     <>
       <Topbar title="Học viên" subtitle="Quyền học, tiến độ, nhập học viên cũ từ Edubit" />
       <PageBody>
         <MobileHeading title="Học viên" />
 
-        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard label="Học viên đang học" value={String(uniqueStudents)} icon={GraduationCap} hint={`${active.length} lượt ghi danh`} />
           <StatCard label="Đã bắt đầu học" value={String(active.filter((r) => r.pct > 0).length)} icon={UserCheck} hint="có ít nhất 1 bài hoàn thành" />
           <StatCard label="Hoàn thành khóa" value={String(active.filter((r) => r.pct === 100).length)} icon={Trophy} hint="100% bài học" />
+          <StatCard label="Đăng ký chưa mua" value={String(signups.length)} icon={UserPlus} hint="tạo tài khoản, chưa có khóa" />
         </div>
 
         <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
+          <div className="min-w-0 space-y-6">
           <Card className="overflow-hidden">
             <form className="flex gap-2 border-b p-4">
               <input name="q" defaultValue={q} placeholder="Tìm theo email, tên, số điện thoại…" className="bg-background focus:border-primary h-10 flex-1 rounded-md border px-3 text-sm outline-none" />
@@ -124,6 +132,49 @@ export default async function StudentsPage({ searchParams }: PageProps<"/admin/s
               </table>
             </div>
           </Card>
+
+          <Card className="overflow-hidden">
+            <CardHeader>
+              <div>
+                <CardTitle>Đăng ký tài khoản, chưa có khóa ({signups.length})</CardTitle>
+                <CardDescription>Tự đăng ký ở trang /hoc/dang-ky — gọi/Zalo chăm sóc, hoặc cấp quyền học ở khung bên cạnh.</CardDescription>
+              </div>
+            </CardHeader>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-muted text-muted-foreground text-left">
+                    <th className="px-4 py-3 font-medium">Người đăng ký</th>
+                    <th className="px-4 py-3 font-medium">Số điện thoại</th>
+                    <th className="px-4 py-3 font-medium">Ngày đăng ký</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {signups.length === 0 && (
+                    <tr><td colSpan={3} className="text-muted-foreground px-4 py-8 text-center">Chưa có ai</td></tr>
+                  )}
+                  {signups.slice(0, 200).map((p) => (
+                    <tr key={p.id} className="hover:bg-muted/50">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <Avatar name={p.full_name || p.email || "?"} />
+                          <div className="min-w-0">
+                            <p className="truncate font-medium">{p.full_name || "—"}</p>
+                            <p className="text-muted-foreground truncate text-xs">{p.email}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        {p.phone ? <a href={`tel:${p.phone}`} className="text-primary hover:underline">{p.phone}</a> : <span className="text-muted-foreground">—</span>}
+                      </td>
+                      <td className="text-muted-foreground px-4 py-3 text-xs">{p.created_at ? formatDate(p.created_at) : "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+          </div>
 
           <Card className="h-fit">
             <CardHeader>

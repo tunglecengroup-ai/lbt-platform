@@ -5,7 +5,7 @@ import { refreshStudentSession } from "@/lib/supabase/proxy";
 /**
  * Cổng bảo vệ — 3 khu:
  *  • Công khai     (/, /khoa-hoc, /don-hang, /api/webhooks…) -> ai cũng vào được
- *  • Khu HỌC VIÊN  (/hoc/*)   -> cần phiên Supabase Auth (đăng nhập bằng mã email ở /hoc/dang-nhap)
+ *  • Khu HỌC VIÊN  (/hoc/*)   -> cần phiên Supabase Auth (đăng nhập bằng mã email ở /hoc/dang-nhap, đăng ký ở /hoc/dang-ky)
  *  • Khu ADMIN     (/admin/*) -> cần cookie "lbt_session" khớp APP_SESSION_SECRET (đăng nhập ở /admin/login)
  */
 export async function proxy(request: NextRequest) {
@@ -28,7 +28,7 @@ export async function proxy(request: NextRequest) {
   const { response, user } = await refreshStudentSession(request);
 
   // ----- Khu học viên -----
-  if ((pathname === "/hoc" || pathname.startsWith("/hoc/")) && pathname !== "/hoc/dang-nhap") {
+  if ((pathname === "/hoc" || pathname.startsWith("/hoc/")) && pathname !== "/hoc/dang-nhap" && pathname !== "/hoc/dang-ky") {
     if (!user) {
       const url = new URL("/hoc/dang-nhap", request.url);
       url.searchParams.set("from", pathname);

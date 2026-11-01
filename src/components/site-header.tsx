@@ -44,6 +44,11 @@ export async function SiteHeader() {
         </nav>
         <div className="ml-auto flex shrink-0 items-center gap-2">
           <ThemeToggle />
+          {!loggedIn && (
+            <Button asChild size="sm" variant="outline" className="hidden sm:inline-flex">
+              <Link href="/hoc/dang-ky">Đăng ký</Link>
+            </Button>
+          )}
           <Button asChild size="sm">
             <Link href="/hoc">
               <GraduationCap className="size-4" />
@@ -72,6 +77,7 @@ export function SiteFooter() {
         <div className="text-muted-foreground space-y-1.5">
           <p className="text-foreground font-semibold">Học viên</p>
           <p><Link href="/hoc" className="hover:text-foreground">Vào học</Link></p>
+          <p><Link href="/hoc/dang-ky" className="hover:text-foreground">Đăng ký tài khoản</Link></p>
           <p><Link href="/hoc/kich-hoat" className="hover:text-foreground">Kích hoạt khóa học bằng mã</Link></p>
           <p><Link href="/blog" className="hover:text-foreground">Blog</Link></p>
         </div>
