@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BookOpen, Clock, ShieldCheck, Zap, Infinity as InfinityIcon } from "lucide-react";
+import { BookOpen, Clock, PlayCircle, ShieldCheck, Zap, Infinity as InfinityIcon } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CourseCover } from "@/components/course-cover";
@@ -8,6 +8,7 @@ import { PostCard } from "@/components/post-card";
 import { listPublishedCourses } from "@/lib/courses";
 import { listFeaturedReviews, listPublishedPosts } from "@/lib/content";
 import { formatVND } from "@/lib/utils";
+import { TRIAL_VIDEO, youtubeIdFrom } from "@/lib/site";
 
 export const metadata = {
   title: "Học viện Lê Bá Tùng — Khóa học Facebook Ads & Marketing thực chiến",
@@ -26,29 +27,55 @@ export default async function HomePage() {
     listFeaturedReviews(),
     listPublishedPosts(3),
   ]);
+  const trialId = youtubeIdFrom(TRIAL_VIDEO);
 
   return (
     <main>
+      {/* Section 1 — video học thử Facebook Ads */}
       <section className="border-b bg-gradient-to-b from-primary/10 to-transparent">
-        <div className="mx-auto max-w-6xl px-4 py-16 md:px-6 md:py-24">
-          <p className="text-primary text-sm font-semibold">Học viện Lê Bá Tùng</p>
-          <h1 className="mt-3 max-w-3xl text-3xl font-bold tracking-tight md:text-5xl">
-            Học quảng cáo & marketing online từ người làm thật
+        <div className="mx-auto max-w-5xl px-4 pt-10 pb-12 text-center md:px-6 md:pt-16 md:pb-16">
+          <span className="bg-primary/10 text-primary inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold">
+            <PlayCircle className="size-3.5" /> Học thử miễn phí
+          </span>
+          <h1 className="mx-auto mt-4 max-w-3xl text-3xl font-bold tracking-tight md:text-5xl">
+            Học thử quảng cáo Facebook cùng Lê Bá Tùng
           </h1>
-          <p className="text-muted-foreground mt-4 max-w-2xl text-base md:text-lg">
-            Video bài bản, làm theo từng bước. Thanh toán bằng mã QR, vào học ngay không cần chờ.
+          <p className="text-muted-foreground mx-auto mt-4 max-w-2xl text-base md:text-lg">
+            Xem ngay một bài học thật trong khóa — 10 năm chạy quảng cáo đúc kết thành từng bước làm theo được.
           </p>
-          <div className="mt-8 flex flex-wrap gap-3">
+
+          <div className="bg-card mx-auto mt-8 aspect-video w-full max-w-4xl overflow-hidden rounded-xl border shadow-lg">
+            {trialId ? (
+              <iframe
+                src={`https://www.youtube-nocookie.com/embed/${trialId}?rel=0&modestbranding=1`}
+                title="Video học thử quảng cáo Facebook — Lê Bá Tùng"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+                className="size-full"
+              />
+            ) : (
+              <div className="from-primary/20 to-primary/5 flex size-full flex-col items-center justify-center gap-3 bg-gradient-to-br">
+                <span className="bg-primary text-primary-foreground flex size-16 items-center justify-center rounded-full shadow-lg">
+                  <PlayCircle className="size-9" />
+                </span>
+                <p className="font-semibold">Video học thử sắp ra mắt</p>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Button asChild className="h-11 px-6">
-              <Link href="#khoa-hoc">Xem các khóa học</Link>
+              <Link href="/hoc/dang-ky">Đăng ký tài khoản miễn phí</Link>
             </Button>
             <Button asChild variant="outline" className="h-11 px-6">
-              <Link href="/hoc">Tôi đã có tài khoản</Link>
-            </Button>
-            <Button asChild variant="ghost" className="h-11 px-6">
-              <Link href="/hoc/kich-hoat">Tôi có mã kích hoạt</Link>
+              <Link href="#khoa-hoc">Xem các khóa học</Link>
             </Button>
           </div>
+          <p className="text-muted-foreground mt-4 text-sm">
+            Đã có tài khoản? <Link href="/hoc" className="text-primary font-medium hover:underline">Vào học</Link>
+            {" · "}
+            <Link href="/hoc/kich-hoat" className="text-primary font-medium hover:underline">Tôi có mã kích hoạt</Link>
+          </p>
         </div>
       </section>
 
