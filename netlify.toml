@@ -6,4 +6,7 @@
 [build.environment]
   NODE_VERSION = "22"
   # Biến NEXT_PUBLIC_* vốn được nhúng vào code trình duyệt — không phải bí mật, bỏ qua khi Netlify quét lộ khóa
-  SECRETS_SCAN_OMIT_KEYS = "NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_ANON_KEY,NEXT_PUBLIC_SITE_URL"
+  SECRETS_SCAN_OMIT_KEYS = "NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_ANON_KEY,NEXT_PUBLIC_SITE_URL,NEXT_PUBLIC_MARKETING_URL,NEXT_PUBLIC_LEARN_URL"
+  # Tách 2 tên miền (xem src/lib/site.ts): quảng bá ở lebatung.com, học + admin ở hoc.lebatung.com
+  NEXT_PUBLIC_MARKETING_URL = "https://lebatung.com"
+  NEXT_PUBLIC_LEARN_URL = "https://hoc.lebatung.com"
