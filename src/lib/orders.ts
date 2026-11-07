@@ -61,6 +61,13 @@ export async function ensureStudent(email: string, name?: string | null, phone?:
   return userId;
 }
 
+/** Thời hạn học tối đa của MỌI khóa: 12 tháng */
+export const MAX_ACCESS_DAYS = 365;
+/** Số ngày được học của 1 khóa: theo cài đặt khóa nhưng không quá 12 tháng; để trống = 12 tháng */
+export function accessDaysOf(course: { access_days: number | null }) {
+  return Math.min(course.access_days && course.access_days > 0 ? course.access_days : MAX_ACCESS_DAYS, MAX_ACCESS_DAYS);
+}
+
 /** Cấp quyền học 1 khóa (dùng cho thanh toán xong, admin cấp tay, nhập từ Edubit) */
 export async function grantCourse(opts: {
   email: string;
@@ -70,9 +77,8 @@ export async function grantCourse(opts: {
 }) {
   const db = createAdminSupabase();
   const userId = await ensureStudent(opts.email, opts.name, opts.phone);
-  const expires = opts.course.access_days
-    ? new Date(Date.now() + opts.course.access_days * 86_400_000).toISOString()
-    : null;
+  // Mọi khóa học tối đa 12 tháng (không còn học trọn đời)
+  const expires = new Date(Date.now() + accessDaysOf(opts.course) * 86_400_000).toISOString();
 
   const { error } = await db.from("enrollments").upsert(
     { user_id: userId, course_id: opts.course.id, status: "active", expires_at: expires },

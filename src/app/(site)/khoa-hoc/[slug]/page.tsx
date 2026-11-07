@@ -13,6 +13,7 @@ import { createServerSupabase } from "@/lib/supabase/server";
 import { lessonEmbedUrl } from "@/lib/video";
 import { formatDuration, formatVND } from "@/lib/utils";
 import { learnHref } from "@/lib/site";
+import { accessDaysOf } from "@/lib/orders";
 
 export async function generateMetadata({ params }: PageProps<"/khoa-hoc/[slug]">) {
   const { slug } = await params;
@@ -71,7 +72,7 @@ export default async function CourseDetailPage({ params }: PageProps<"/khoa-hoc/
           <div className="text-muted-foreground mt-4 flex flex-wrap gap-4 text-sm">
             <span className="inline-flex items-center gap-1.5"><BookOpen className="size-4" /> {total} bài học</span>
             {totalSec > 0 && <span className="inline-flex items-center gap-1.5"><Clock className="size-4" /> {Math.round(totalSec / 60)} phút video</span>}
-            <span>{course.access_days ? `Truy cập ${course.access_days} ngày` : "Học trọn đời"}</span>
+            <span>{accessDaysOf(course) >= 365 ? "Truy cập 12 tháng" : `Truy cập ${accessDaysOf(course)} ngày`}</span>
             {reviews.length > 0 && (
               <span className="inline-flex items-center gap-1.5">
                 <Stars value={avgRating} /> {avgRating.toFixed(1)} ({reviews.length} đánh giá)

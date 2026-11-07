@@ -90,7 +90,7 @@ export default async function CourseEditPage({ params }: PageProps<"/admin/cours
               </Field>
               <Field label="Giá bán (đ)"><input name="price" inputMode="numeric" defaultValue={c.price_vnd} className={inputClass} /></Field>
               <Field label="Giá gạch (đ)" hint="Để trống nếu không giảm giá"><input name="compare_price" inputMode="numeric" defaultValue={c.compare_price_vnd ?? ""} className={inputClass} /></Field>
-              <Field label="Thời hạn học (ngày)" hint="Để trống = trọn đời"><input name="access_days" inputMode="numeric" defaultValue={c.access_days ?? ""} className={inputClass} /></Field>
+              <Field label="Thời hạn học (ngày)" hint="Tối đa 365 ngày (12 tháng). Để trống = 365"><input name="access_days" type="number" min={1} max={365} defaultValue={c.access_days ?? 365} className={inputClass} /></Field>
               <Field label="Mã list GetResponse" hint="Mua xong tự thêm vào list này"><input name="gr_campaign_id" defaultValue={c.gr_campaign_id ?? ""} className={inputClass} /></Field>
               <label className="flex items-center gap-2 text-sm font-medium sm:col-span-2">
                 <input type="checkbox" name="is_published" defaultChecked={c.is_published} className="accent-[hsl(var(--primary))] size-4" />

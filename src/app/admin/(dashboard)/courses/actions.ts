@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { assertAdmin } from "@/lib/admin-guard";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import { slugify } from "@/lib/utils";
+import { MAX_ACCESS_DAYS } from "@/lib/orders";
 
 const str = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
 const optStr = (f: FormData, k: string) => str(f, k) || null;
@@ -40,7 +41,7 @@ export async function createCourse(form: FormData) {
   const db = createAdminSupabase();
   const { data, error } = await db
     .from("courses")
-    .insert({ title, slug: slugify(str(form, "slug") || title), price_vnd: int(form, "price") ?? 0, is_published: false })
+    .insert({ title, slug: slugify(str(form, "slug") || title), price_vnd: int(form, "price") ?? 0, access_days: MAX_ACCESS_DAYS, is_published: false })
     .select("id")
     .single();
   if (error) throw new Error(error.code === "23505" ? "Đường dẫn (slug) đã tồn tại" : error.message);
@@ -62,7 +63,7 @@ export async function updateCourse(form: FormData) {
       cover_url: optStr(form, "cover_url"),
       price_vnd: int(form, "price") ?? 0,
       compare_price_vnd: int(form, "compare_price"),
-      access_days: int(form, "access_days"),
+      access_days: Math.min(int(form, "access_days") || MAX_ACCESS_DAYS, MAX_ACCESS_DAYS),
       gr_campaign_id: optStr(form, "gr_campaign_id"),
       position: int(form, "position") ?? 0,
       is_published: form.get("is_published") === "on",
