@@ -8,7 +8,7 @@ import { StatCard } from "@/components/ui/stat-card";
 import { ConfirmButton } from "@/components/confirm-button";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import { formatVND, timeAgo } from "@/lib/utils";
-import type { Tone } from "@/lib/mock-data";
+import type { Tone } from "@/lib/types";
 import type { OrderRow } from "@/lib/types";
 import { cancelOrder, markOrderPaid } from "./actions";
 

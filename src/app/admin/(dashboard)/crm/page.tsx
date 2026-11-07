@@ -1,13 +1,13 @@
-import { Filter, Plus, Phone, Mail } from "lucide-react";
+import { Phone, Mail } from "lucide-react";
 import { Topbar, MobileHeading } from "@/components/topbar";
 import { PageBody } from "@/components/ui/page";
-import { Button } from "@/components/ui/button";
 import { Badge, Dot } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
 import { StatCard } from "@/components/ui/stat-card";
 import { Card } from "@/components/ui/card";
 import { formatShortVND, timeAgo } from "@/lib/utils";
-import { leads, LEAD_STAGES, type LeadStage } from "@/lib/mock-data";
+import { LEAD_STAGES } from "@/lib/types";
+import { createAdminSupabase } from "@/lib/supabase/admin";
 import { Users, Banknote, Target, Percent } from "lucide-react";
 
 const sourceTone: Record<string, string> = {
@@ -24,12 +24,28 @@ function scoreTone(score: number) {
   return "danger" as const;
 }
 
-export default function CrmPage() {
+export const dynamic = "force-dynamic";
+
+type LeadView = {
+  id: string; name: string; phone: string | null; email: string | null; source: string | null;
+  value: number; stage: string; owner: string | null; score: number; note: string | null; lastTouch: string;
+};
+
+export default async function CrmPage() {
+  const { data } = await createAdminSupabase()
+    .from("leads")
+    .select("id, name, phone, email, source, value_vnd, stage, owner, score, note, last_touch_at")
+    .order("last_touch_at", { ascending: false })
+    .limit(2000);
+  const leads: LeadView[] = (data ?? []).map((l) => ({
+    id: l.id, name: l.name, phone: l.phone, email: l.email, source: l.source, value: l.value_vnd ?? 0,
+    stage: l.stage, owner: l.owner, score: l.score ?? 0, note: l.note, lastTouch: l.last_touch_at,
+  }));
   const pipelineValue = leads
     .filter((l) => !["chot", "mat"].includes(l.stage))
     .reduce((s, l) => s + l.value, 0);
   const won = leads.filter((l) => l.stage === "chot").length;
-  const rate = Math.round((won / leads.length) * 100);
+  const rate = leads.length ? Math.round((won / leads.length) * 100) : 0;
 
   return (
     <>
@@ -40,26 +56,14 @@ export default function CrmPage() {
         <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
           <StatCard label="Tổng lead" value={String(leads.length)} icon={Users} hint="đang theo dõi" />
           <StatCard label="Giá trị phễu" value={formatShortVND(pipelineValue)} icon={Banknote} hint="chưa chốt" />
-          <StatCard label="Đã chốt" value={String(won)} delta={12} icon={Target} />
-          <StatCard label="Tỷ lệ chốt" value={`${rate}%`} delta={5} icon={Percent} />
-        </div>
-
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm">
-              <Filter className="size-4" /> Bộ lọc
-            </Button>
-            <span className="text-muted-foreground hidden text-sm sm:inline">Kéo thả để đổi trạng thái (demo)</span>
-          </div>
-          <Button size="sm">
-            <Plus className="size-4" /> Thêm lead
-          </Button>
+          <StatCard label="Đã chốt" value={String(won)} icon={Target} />
+          <StatCard label="Tỷ lệ chốt" value={`${rate}%`} icon={Percent} />
         </div>
 
         {/* Kanban */}
         <div className="scrollbar-thin -mx-4 flex snap-x gap-4 overflow-x-auto px-4 pb-4 md:mx-0 md:px-0">
           {LEAD_STAGES.map((stage) => {
-            const items = leads.filter((l) => l.stage === (stage.id as LeadStage));
+            const items = leads.filter((l) => l.stage === stage.id);
             const colValue = items.reduce((s, l) => s + l.value, 0);
             return (
               <div key={stage.id} className="w-[280px] shrink-0 snap-start">
@@ -75,13 +79,13 @@ export default function CrmPage() {
 
                 <div className="space-y-3">
                   {items.map((lead) => (
-                    <Card key={lead.id} className="hover:border-primary/40 cursor-grab p-4 transition-colors active:cursor-grabbing">
+                    <Card key={lead.id} className="hover:border-primary/40 p-4 transition-colors">
                       <div className="flex items-start gap-3">
                         <Avatar name={lead.name} />
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-medium">{lead.name}</p>
-                          <p className={`truncate text-xs font-medium ${sourceTone[lead.source] ?? "text-muted-foreground"}`}>
-                            {lead.source}
+                          <p className={`truncate text-xs font-medium ${sourceTone[lead.source ?? ""] ?? "text-muted-foreground"}`}>
+                            {lead.source ?? "—"}
                           </p>
                         </div>
                         <Badge tone={scoreTone(lead.score)} className="h-5 px-1.5 text-[11px]">
@@ -98,17 +102,21 @@ export default function CrmPage() {
                           {lead.value > 0 ? formatShortVND(lead.value) : "—"}
                         </span>
                         <div className="text-muted-foreground flex items-center gap-1">
-                          <button className="hover:bg-muted hover:text-foreground inline-flex size-7 items-center justify-center rounded-md" aria-label={`Gọi ${lead.name}`}>
-                            <Phone className="size-3.5" />
-                          </button>
-                          <button className="hover:bg-muted hover:text-foreground inline-flex size-7 items-center justify-center rounded-md" aria-label={`Email ${lead.name}`}>
-                            <Mail className="size-3.5" />
-                          </button>
+                          {lead.phone && (
+                            <a href={`tel:${lead.phone}`} className="hover:bg-muted hover:text-foreground inline-flex size-7 items-center justify-center rounded-md" aria-label={`Gọi ${lead.name}`}>
+                              <Phone className="size-3.5" />
+                            </a>
+                          )}
+                          {lead.email && (
+                            <a href={`mailto:${lead.email}`} className="hover:bg-muted hover:text-foreground inline-flex size-7 items-center justify-center rounded-md" aria-label={`Email ${lead.name}`}>
+                              <Mail className="size-3.5" />
+                            </a>
+                          )}
                         </div>
                       </div>
 
                       <div className="text-muted-foreground mt-2 flex items-center justify-between border-t pt-2 text-[11px]">
-                        <span className="truncate">{lead.owner}</span>
+                        <span className="truncate">{lead.owner ?? "Chưa giao"}</span>
                         <span>{timeAgo(lead.lastTouch)}</span>
                       </div>
                     </Card>

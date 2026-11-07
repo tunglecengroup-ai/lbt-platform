@@ -81,3 +81,18 @@ export type ReviewRow = {
   is_featured: boolean;
   position: number;
 };
+
+// ===== Giao diện admin =====
+
+export type Tone = "info" | "success" | "warning" | "danger" | "violet" | "neutral";
+
+export type LeadStage = "moi" | "da-lien-he" | "quan-tam" | "dam-phan" | "chot" | "mat";
+
+export const LEAD_STAGES: { id: LeadStage; label: string; tone: Tone }[] = [
+  { id: "moi", label: "Lead mới", tone: "info" },
+  { id: "da-lien-he", label: "Đã liên hệ", tone: "violet" },
+  { id: "quan-tam", label: "Quan tâm", tone: "warning" },
+  { id: "dam-phan", label: "Đàm phán", tone: "warning" },
+  { id: "chot", label: "Chốt đơn", tone: "success" },
+  { id: "mat", label: "Mất", tone: "danger" },
+];

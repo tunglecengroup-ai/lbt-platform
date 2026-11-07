@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import type { Tone } from "@/lib/mock-data";
+import type { Tone } from "@/lib/types";
 
 const toneClass: Record<Tone, string> = {
   info: "bg-info-soft text-info border-info/20",

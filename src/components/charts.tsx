@@ -14,7 +14,9 @@ import {
   YAxis,
 } from "recharts";
 import { formatShortVND, formatVND, formatNumber } from "@/lib/utils";
-import { revenueByMonth, leadsBySource } from "@/lib/mock-data";
+
+export type MonthPoint = { month: string; doanhThu: number; hocVienMoi: number };
+export type SourceSlice = { source: string; value: number; color: string };
 
 const axisStyle = { fontSize: 12, fill: "hsl(var(--muted-foreground))" };
 
@@ -24,10 +26,10 @@ function TooltipBox({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function RevenueChart() {
+export function RevenueChart({ data }: { data: MonthPoint[] }) {
   return (
     <ResponsiveContainer width="100%" height={280}>
-      <AreaChart data={revenueByMonth} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
+      <AreaChart data={data} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
         <defs>
           <linearGradient id="rev" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.25} />
@@ -65,10 +67,10 @@ export function RevenueChart() {
   );
 }
 
-export function NewStudentsChart() {
+export function NewStudentsChart({ data }: { data: MonthPoint[] }) {
   return (
     <ResponsiveContainer width="100%" height={220}>
-      <BarChart data={revenueByMonth} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
+      <BarChart data={data} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
         <XAxis dataKey="month" tick={axisStyle} tickLine={false} axisLine={false} />
         <YAxis tick={axisStyle} tickLine={false} axisLine={false} width={28} />
         <Tooltip
@@ -90,8 +92,11 @@ export function NewStudentsChart() {
   );
 }
 
-export function LeadsSourceChart() {
+export function LeadsSourceChart({ data: leadsBySource }: { data: SourceSlice[] }) {
   const total = leadsBySource.reduce((s, d) => s + d.value, 0);
+  if (total === 0) {
+    return <p className="text-muted-foreground py-12 text-center text-sm">Chưa có lead nào.</p>;
+  }
   return (
     <div className="flex flex-col items-center gap-4 sm:flex-row">
       <div className="relative">

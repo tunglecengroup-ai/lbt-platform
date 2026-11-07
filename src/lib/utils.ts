@@ -36,9 +36,10 @@ export function formatDate(iso: string) {
 }
 
 /** "2026-07-18T09:00:00Z" -> "2 ngày trước" */
-export function timeAgo(iso: string, now = new Date("2026-07-20T12:00:00Z")) {
+export function timeAgo(iso: string, now = new Date()) {
   const diff = now.getTime() - new Date(iso).getTime();
   const mins = Math.round(diff / 60_000);
+  if (mins < 1) return "vừa xong";
   if (mins < 60) return `${mins} phút trước`;
   const hours = Math.round(mins / 60);
   if (hours < 24) return `${hours} giờ trước`;
