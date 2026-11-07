@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { createServerSupabase } from "@/lib/supabase/server";
+import { learnHref } from "@/lib/site";
 
 async function isLoggedIn() {
   if (!isSupabaseConfigured) return false;
@@ -17,7 +18,7 @@ const links = [
   { href: "/blog", label: "Blog" },
   { href: "/p/le-ba-tung-la-ai", label: "Về Lê Bá Tùng", className: "hidden md:block" },
   { href: "/p/lien-he", label: "Liên hệ", className: "hidden md:block" },
-  { href: "/hoc/kich-hoat", label: "Mã kích hoạt", className: "hidden lg:block" },
+  { href: learnHref("/hoc/kich-hoat"), label: "Mã kích hoạt", className: "hidden lg:block" },
 ];
 
 export async function SiteHeader() {
@@ -46,11 +47,11 @@ export async function SiteHeader() {
           <ThemeToggle />
           {!loggedIn && (
             <Button asChild size="sm" variant="outline" className="hidden sm:inline-flex">
-              <Link href="/hoc/dang-ky">Đăng ký</Link>
+              <Link href={learnHref("/hoc/dang-ky")}>Đăng ký</Link>
             </Button>
           )}
           <Button asChild size="sm">
-            <Link href="/hoc">
+            <Link href={learnHref("/hoc")}>
               <GraduationCap className="size-4" />
               {loggedIn ? "Khóa của tôi" : "Vào học"}
             </Link>
@@ -76,9 +77,9 @@ export function SiteFooter() {
         </div>
         <div className="text-muted-foreground space-y-1.5">
           <p className="text-foreground font-semibold">Học viên</p>
-          <p><Link href="/hoc" className="hover:text-foreground">Vào học</Link></p>
-          <p><Link href="/hoc/dang-ky" className="hover:text-foreground">Đăng ký tài khoản</Link></p>
-          <p><Link href="/hoc/kich-hoat" className="hover:text-foreground">Kích hoạt khóa học bằng mã</Link></p>
+          <p><Link href={learnHref("/hoc")} className="hover:text-foreground">Vào học</Link></p>
+          <p><Link href={learnHref("/hoc/dang-ky")} className="hover:text-foreground">Đăng ký tài khoản</Link></p>
+          <p><Link href={learnHref("/hoc/kich-hoat")} className="hover:text-foreground">Kích hoạt khóa học bằng mã</Link></p>
           <p><Link href="/blog" className="hover:text-foreground">Blog</Link></p>
         </div>
       </div>

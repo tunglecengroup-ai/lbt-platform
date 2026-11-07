@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Check, Copy, LoaderCircle, PartyPopper } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { learnHref } from "@/lib/site";
 
 export function CopyValue({ value }: { value: string }) {
   const [done, setDone] = useState(false);
@@ -53,7 +54,7 @@ export function PaymentWatcher({ orderId }: { orderId: string }) {
 }
 
 export function PaidPanel({ email, courseSlug, courseTitle }: { email: string; courseSlug: string; courseTitle: string }) {
-  const loginHref = `/hoc/dang-nhap?email=${encodeURIComponent(email)}&from=${encodeURIComponent(`/hoc/${courseSlug}`)}`;
+  const loginHref = learnHref(`/hoc/dang-nhap?email=${encodeURIComponent(email)}&from=${encodeURIComponent(`/hoc/${courseSlug}`)}`);
   return (
     <Card className="p-8 text-center">
       <span className="bg-success-soft text-success mx-auto flex size-14 items-center justify-center rounded-full">

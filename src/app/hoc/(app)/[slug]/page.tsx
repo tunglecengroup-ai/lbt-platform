@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatDuration } from "@/lib/utils";
 import { getStudentCourse, resumeLesson } from "@/lib/learning";
 import { CourseCover } from "@/components/course-cover";
+import { marketingHref } from "@/lib/site";
 
 export default async function CoursePage({
   params,
@@ -59,7 +60,7 @@ export default async function CoursePage({
       {!course.enrolled && (
         <Card className="border-primary/30 bg-primary/5 mt-4 flex flex-col gap-3 p-5 sm:flex-row sm:items-center">
           <p className="flex-1 text-sm">Bạn đang xem thử. Đăng ký khóa học để mở toàn bộ bài giảng.</p>
-          <Button asChild><Link href={`/khoa-hoc/${course.slug}/mua`}>Đăng ký học</Link></Button>
+          <Button asChild><Link href={marketingHref(`/khoa-hoc/${course.slug}/mua`)}>Đăng ký học</Link></Button>
         </Card>
       )}
 

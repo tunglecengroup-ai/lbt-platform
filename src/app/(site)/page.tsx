@@ -8,7 +8,7 @@ import { PostCard } from "@/components/post-card";
 import { listPublishedCourses } from "@/lib/courses";
 import { listFeaturedReviews, listPublishedPosts } from "@/lib/content";
 import { formatVND } from "@/lib/utils";
-import { TRIAL_VIDEO, youtubeIdFrom } from "@/lib/site";
+import { TRIAL_VIDEO, learnHref, youtubeIdFrom } from "@/lib/site";
 
 export const metadata = {
   title: "Học viện Lê Bá Tùng — Khóa học Facebook Ads & Marketing thực chiến",
@@ -65,16 +65,16 @@ export default async function HomePage() {
 
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Button asChild className="h-11 px-6">
-              <Link href="/hoc/dang-ky">Đăng ký tài khoản miễn phí</Link>
+              <Link href={learnHref("/hoc/dang-ky")}>Đăng ký tài khoản miễn phí</Link>
             </Button>
             <Button asChild variant="outline" className="h-11 px-6">
               <Link href="#khoa-hoc">Xem các khóa học</Link>
             </Button>
           </div>
           <p className="text-muted-foreground mt-4 text-sm">
-            Đã có tài khoản? <Link href="/hoc" className="text-primary font-medium hover:underline">Vào học</Link>
+            Đã có tài khoản? <Link href={learnHref("/hoc")} className="text-primary font-medium hover:underline">Vào học</Link>
             {" · "}
-            <Link href="/hoc/kich-hoat" className="text-primary font-medium hover:underline">Tôi có mã kích hoạt</Link>
+            <Link href={learnHref("/hoc/kich-hoat")} className="text-primary font-medium hover:underline">Tôi có mã kích hoạt</Link>
           </p>
         </div>
       </section>

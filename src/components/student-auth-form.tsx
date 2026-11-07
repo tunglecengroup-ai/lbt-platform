@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Mail, LoaderCircle, GraduationCap, KeyRound, User, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createBrowserSupabase } from "@/lib/supabase/client";
+import { marketingHref } from "@/lib/site";
 
 const inputClass =
   "bg-background focus:border-primary focus:ring-primary/20 h-11 w-full rounded-md border pr-3 pl-9 text-sm outline-none focus:ring-2";
@@ -88,7 +89,7 @@ export function StudentAuthForm({ mode }: { mode: "login" | "register" }) {
     <div className="flex min-h-dvh items-center justify-center px-4 py-10">
       <div className="w-full max-w-sm">
         <div className="mb-6 flex flex-col items-center text-center">
-          <Link href="/" className="bg-primary text-primary-foreground mb-4 flex size-12 items-center justify-center rounded-xl">
+          <Link href={marketingHref("/")} className="bg-primary text-primary-foreground mb-4 flex size-12 items-center justify-center rounded-xl">
             <GraduationCap className="size-6" />
           </Link>
           <h1 className="text-xl font-semibold tracking-tight">{register ? "Tạo tài khoản học viên" : "Học viện Lê Bá Tùng"}</h1>

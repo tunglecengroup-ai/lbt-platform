@@ -11,6 +11,7 @@ import { ConfirmButton } from "@/components/confirm-button";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import { formatDuration } from "@/lib/utils";
 import type { CourseRow } from "@/lib/types";
+import { marketingHref } from "@/lib/site";
 import {
   addChapter,
   addLesson,
@@ -58,7 +59,7 @@ export default async function CourseEditPage({ params }: PageProps<"/admin/cours
           <Link href="/admin/courses" className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 text-sm font-medium">
             <ArrowLeft className="size-4" /> Tất cả khóa học
           </Link>
-          <Link href={`/khoa-hoc/${c.slug}`} target="_blank" className="text-primary ml-auto inline-flex items-center gap-1 text-sm font-medium">
+          <Link href={marketingHref(`/khoa-hoc/${c.slug}`)} target="_blank" className="text-primary ml-auto inline-flex items-center gap-1 text-sm font-medium">
             Xem trang bán <ExternalLink className="size-3.5" />
           </Link>
         </div>

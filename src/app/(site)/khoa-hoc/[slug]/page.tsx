@@ -12,6 +12,7 @@ import { createAdminSupabase } from "@/lib/supabase/admin";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { lessonEmbedUrl } from "@/lib/video";
 import { formatDuration, formatVND } from "@/lib/utils";
+import { learnHref } from "@/lib/site";
 
 export async function generateMetadata({ params }: PageProps<"/khoa-hoc/[slug]">) {
   const { slug } = await params;
@@ -160,7 +161,7 @@ export default async function CourseDetailPage({ params }: PageProps<"/khoa-hoc/
             <p className="mt-1 text-3xl font-bold">{course.price_vnd ? formatVND(course.price_vnd) : "Miễn phí"}</p>
             {enrolled ? (
               <Button asChild className="mt-5 h-12 w-full text-base">
-                <Link href={`/hoc/${course.slug}`}>Vào học ngay</Link>
+                <Link href={learnHref(`/hoc/${course.slug}`)}>Vào học ngay</Link>
               </Button>
             ) : (
               <Button asChild className="mt-5 h-12 w-full text-base">

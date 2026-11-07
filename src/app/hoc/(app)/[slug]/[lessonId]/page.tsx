@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { MarkComplete } from "@/components/lesson-actions";
 import { formatDuration, cn } from "@/lib/utils";
 import { flatLessons, getLessonContent, getStudentCourse } from "@/lib/learning";
+import { marketingHref } from "@/lib/site";
 
 export default async function LessonPage({ params }: PageProps<"/hoc/[slug]/[lessonId]">) {
   const { slug, lessonId } = await params;
@@ -64,7 +65,7 @@ export default async function LessonPage({ params }: PageProps<"/hoc/[slug]/[les
                     </span>
                     <p className="text-sm font-medium text-white/80">Bài học dành cho học viên đã đăng ký</p>
                     <Button asChild size="sm">
-                      <Link href={`/khoa-hoc/${slug}/mua`}>Đăng ký để mở khóa</Link>
+                      <Link href={marketingHref(`/khoa-hoc/${slug}/mua`)}>Đăng ký để mở khóa</Link>
                     </Button>
                   </>
                 )}

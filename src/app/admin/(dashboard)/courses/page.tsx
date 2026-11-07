@@ -11,6 +11,7 @@ import { createAdminSupabase } from "@/lib/supabase/admin";
 import { formatVND } from "@/lib/utils";
 import type { CourseRow } from "@/lib/types";
 import { createCourse } from "./actions";
+import { marketingHref } from "@/lib/site";
 
 export default async function CoursesPage() {
   const db = createAdminSupabase();
@@ -58,7 +59,7 @@ export default async function CoursesPage() {
                   <span className="inline-flex items-center gap-1"><PlayCircle className="size-3.5" /> {count(lessons, c.id)} bài</span>
                   <span className="inline-flex items-center gap-1"><Users className="size-3.5" /> {count(enrollments, c.id)} học viên</span>
                   {c.is_published && (
-                    <Link href={`/khoa-hoc/${c.slug}`} target="_blank" className="hover:text-foreground ml-auto inline-flex items-center gap-1">
+                    <Link href={marketingHref(`/khoa-hoc/${c.slug}`)} target="_blank" className="hover:text-foreground ml-auto inline-flex items-center gap-1">
                       Trang bán <ExternalLink className="size-3" />
                     </Link>
                   )}

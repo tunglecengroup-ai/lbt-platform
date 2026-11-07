@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
+import { cookieDomainFor } from "@/lib/site";
 import { supabaseUrl, supabaseAnonKey } from "./env";
 
 /**
@@ -9,8 +10,10 @@ import { supabaseUrl, supabaseAnonKey } from "./env";
  */
 export async function createServerSupabase() {
   const cookieStore = await cookies();
+  const domain = cookieDomainFor((await headers()).get("host"));
 
   return createServerClient(supabaseUrl(), supabaseAnonKey(), {
+    cookieOptions: domain ? { domain } : undefined,
     cookies: {
       getAll() {
         return cookieStore.getAll();
