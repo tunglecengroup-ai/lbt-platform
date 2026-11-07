@@ -57,11 +57,40 @@ export async function importStudents(_prev: ImportState, form: FormData): Promis
 export async function revokeEnrollment(form: FormData) {
   await assertAdmin();
   await createAdminSupabase().from("enrollments").update({ status: "expired" }).eq("id", String(form.get("id")));
-  revalidatePath("/admin/students");
+  revalidatePath("/admin/students", "layout");
 }
 
 export async function restoreEnrollment(form: FormData) {
   await assertAdmin();
   await createAdminSupabase().from("enrollments").update({ status: "active" }).eq("id", String(form.get("id")));
-  revalidatePath("/admin/students");
+  revalidatePath("/admin/students", "layout");
+}
+
+/** Trang chi tiết học viên: tick khóa -> cấp quyền ngay, không cần nhập email */
+export async function addCoursesToStudent(_prev: ImportState, form: FormData): Promise<ImportState> {
+  await assertAdmin();
+  const userId = String(form.get("user_id"));
+  const { data: profile } = await createAdminSupabase()
+    .from("profiles")
+    .select("email, full_name, phone")
+    .eq("id", userId)
+    .single();
+  if (!profile) return { errors: ["Không tìm thấy học viên"] };
+
+  const courses = await loadCourses(form.getAll("course_id").map(String).filter(Boolean));
+  if (courses.length === 0) return { errors: ["Chưa chọn khóa học nào"] };
+
+  let ok = 0;
+  const errors: string[] = [];
+  for (const course of courses) {
+    try {
+      // không truyền tên/sđt để khỏi ghi đè hồ sơ hiện có
+      await grantCourse({ email: profile.email, course });
+      ok++;
+    } catch (e) {
+      errors.push(`${course.title}: ${(e as Error).message}`);
+    }
+  }
+  revalidatePath("/admin/students", "layout");
+  return { message: ok ? `Đã thêm ${ok} khóa cho ${profile.full_name || profile.email}` : undefined, errors };
 }

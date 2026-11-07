@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { GraduationCap, UserCheck, Trophy, UserPlus } from "lucide-react";
 import { Topbar, MobileHeading } from "@/components/topbar";
 import { PageBody } from "@/components/ui/page";
@@ -57,7 +58,7 @@ export default async function StudentsPage({ searchParams }: PageProps<"/admin/s
 
   return (
     <>
-      <Topbar title="Học viên" subtitle="Quyền học, tiến độ, nhập học viên cũ từ Edubit" />
+      <Topbar title="Học viên" subtitle="Bấm vào tên học viên để xem quá trình học và thêm khóa" />
       <PageBody>
         <MobileHeading title="Học viên" />
 
@@ -93,13 +94,13 @@ export default async function StudentsPage({ searchParams }: PageProps<"/admin/s
                   {rows.map((r) => (
                     <tr key={r.id} className="hover:bg-muted/50">
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
+                        <Link href={`/admin/students/${r.user_id}`} className="group flex items-center gap-3">
                           <Avatar name={r.profile?.full_name || r.profile?.email || "?"} />
                           <div className="min-w-0">
-                            <p className="truncate font-medium">{r.profile?.full_name || "—"}</p>
+                            <p className="group-hover:text-primary truncate font-medium group-hover:underline">{r.profile?.full_name || "—"}</p>
                             <p className="text-muted-foreground truncate text-xs">{r.profile?.email} {r.profile?.phone && `· ${r.profile.phone}`}</p>
                           </div>
-                        </div>
+                        </Link>
                       </td>
                       <td className="text-muted-foreground px-4 py-3">{r.course}</td>
                       <td className="w-40 px-4 py-3">
@@ -137,7 +138,7 @@ export default async function StudentsPage({ searchParams }: PageProps<"/admin/s
             <CardHeader>
               <div>
                 <CardTitle>Đăng ký tài khoản, chưa có khóa ({signups.length})</CardTitle>
-                <CardDescription>Tự đăng ký ở trang /hoc/dang-ky — gọi/Zalo chăm sóc, hoặc cấp quyền học ở khung bên cạnh.</CardDescription>
+                <CardDescription>Tự đăng ký ở trang /hoc/dang-ky — bấm vào tên để thêm khóa, hoặc gọi/Zalo chăm sóc.</CardDescription>
               </div>
             </CardHeader>
             <div className="overflow-x-auto">
@@ -156,13 +157,13 @@ export default async function StudentsPage({ searchParams }: PageProps<"/admin/s
                   {signups.slice(0, 200).map((p) => (
                     <tr key={p.id} className="hover:bg-muted/50">
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
+                        <Link href={`/admin/students/${p.id}`} className="group flex items-center gap-3">
                           <Avatar name={p.full_name || p.email || "?"} />
                           <div className="min-w-0">
-                            <p className="truncate font-medium">{p.full_name || "—"}</p>
+                            <p className="group-hover:text-primary truncate font-medium group-hover:underline">{p.full_name || "—"}</p>
                             <p className="text-muted-foreground truncate text-xs">{p.email}</p>
                           </div>
-                        </div>
+                        </Link>
                       </td>
                       <td className="px-4 py-3">
                         {p.phone ? <a href={`tel:${p.phone}`} className="text-primary hover:underline">{p.phone}</a> : <span className="text-muted-foreground">—</span>}
