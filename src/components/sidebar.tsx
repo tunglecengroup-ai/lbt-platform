@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { Menu, X, LogOut, Sparkles } from "lucide-react";
+import { Menu, X, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { navItems } from "@/components/nav";
 
@@ -55,19 +55,6 @@ function Brand() {
   );
 }
 
-function UpgradeCard() {
-  return (
-    <div className="bg-primary/5 border-primary/15 mx-3 mb-3 rounded-lg border p-3">
-      <div className="text-primary flex items-center gap-2 text-sm font-medium">
-        <Sparkles className="size-4" /> Trợ lý AI
-      </div>
-      <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
-        Hỏi bất kỳ số liệu nào bằng tiếng Việt, AI trả lời ngay.
-      </p>
-    </div>
-  );
-}
-
 export function Sidebar() {
   const [open, setOpen] = useState(false);
 
@@ -89,7 +76,6 @@ export function Sidebar() {
       <aside className="bg-card sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r lg:flex">
         <Brand />
         <NavLinks />
-        <UpgradeCard />
         <div className="border-t p-3">
           <a
             href="/api/logout"
@@ -120,7 +106,6 @@ export function Sidebar() {
               </button>
             </div>
             <NavLinks onNavigate={() => setOpen(false)} />
-            <UpgradeCard />
           </div>
         </div>
       )}

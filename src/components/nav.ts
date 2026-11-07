@@ -20,7 +20,7 @@ export type NavItem = {
 
 export const navItems: NavItem[] = [
   { href: "/admin", label: "Tổng quan", icon: LayoutDashboard },
-  { href: "/admin/crm", label: "Khách hàng (CRM)", icon: Users, badge: "3" },
+  { href: "/admin/crm", label: "Khách hàng (CRM)", icon: Users },
   { href: "/admin/students", label: "Học viên", icon: GraduationCap },
   { href: "/admin/courses", label: "Khóa học", icon: BookOpen },
   { href: "/admin/orders", label: "Đơn hàng", icon: Receipt },
