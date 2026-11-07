@@ -9,14 +9,13 @@ export type ImportState = { message?: string; errors?: string[] };
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-async function loadCourse(id: string) {
+async function loadCourses(ids: string[]) {
+  if (ids.length === 0) return [];
   const { data } = await createAdminSupabase()
     .from("courses")
-    .select("id, access_days, gr_campaign_id")
-    .eq("id", id)
-    .single();
-  if (!data) throw new Error("Chưa chọn khóa học");
-  return data;
+    .select("id, title, access_days, gr_campaign_id")
+    .in("id", ids);
+  return data ?? [];
 }
 
 /**
@@ -25,7 +24,8 @@ async function loadCourse(id: string) {
  */
 export async function importStudents(_prev: ImportState, form: FormData): Promise<ImportState> {
   await assertAdmin();
-  const course = await loadCourse(String(form.get("course_id")));
+  const courses = await loadCourses(form.getAll("course_id").map(String).filter(Boolean));
+  if (courses.length === 0) return { errors: ["Chưa chọn khóa học nào"] };
   const lines = String(form.get("rows") ?? "")
     .split(/\r?\n/)
     .map((l) => l.trim())
@@ -39,15 +39,19 @@ export async function importStudents(_prev: ImportState, form: FormData): Promis
       if (!/email/i.test(email)) errors.push(`Bỏ qua (email sai): ${line}`); // dòng tiêu đề thì im lặng bỏ qua
       continue;
     }
-    try {
-      await grantCourse({ email, name: name || null, phone: phone || null, course });
-      ok++;
-    } catch (e) {
-      errors.push(`${email}: ${(e as Error).message}`);
+    let granted = 0;
+    for (const course of courses) {
+      try {
+        await grantCourse({ email, name: name || null, phone: phone || null, course });
+        granted++;
+      } catch (e) {
+        errors.push(`${email} — ${course.title}: ${(e as Error).message}`);
+      }
     }
+    if (granted) ok++;
   }
   revalidatePath("/admin/students");
-  return { message: `Đã cấp quyền cho ${ok} học viên`, errors };
+  return { message: `Đã cấp quyền ${courses.length} khóa cho ${ok} học viên`, errors };
 }
 
 export async function revokeEnrollment(form: FormData) {
