@@ -3,12 +3,18 @@ import { createAdminSupabase } from "@/lib/supabase/admin";
 import { addToGetResponse } from "@/lib/getresponse";
 import { newOrderCode } from "@/lib/payment";
 import type { CourseRow, OrderRow } from "@/lib/types";
+import { enqueueAutomation, stopAutomation } from "@/lib/automation";
+import { getPlanBySlug, grantMembership, PLAN_COLUMNS, type MembershipPlan } from "@/lib/membership";
+import { formatVND } from "@/lib/utils";
+import { sendMetaPurchase } from "@/lib/meta-capi";
 
 const normEmail = (e: string) => e.trim().toLowerCase();
 
 /** Tạo đơn chờ thanh toán. Thử lại vài lần nếu trùng mã. */
 export async function createOrder(input: {
-  courseId: string;
+  courseId?: string | null;
+  planId?: string | null;
+  itemTitle?: string;
   amount: number;
   name: string;
   email: string;
@@ -20,7 +26,8 @@ export async function createOrder(input: {
       .from("orders")
       .insert({
         code: newOrderCode(),
-        course_id: input.courseId,
+        course_id: input.courseId ?? null,
+        plan_id: input.planId ?? null,
         amount_vnd: input.amount,
         customer_name: input.name,
         customer_email: normEmail(input.email),
@@ -29,7 +36,17 @@ export async function createOrder(input: {
       })
       .select("*")
       .single();
-    if (!error) return data as OrderRow;
+    if (!error) {
+      const order = data as OrderRow;
+      if (order.amount_vnd > 0) {
+        await enqueueAutomation("order_pending", {
+          email: order.customer_email ?? input.email,
+          dedupeKey: `order:${order.id}`,
+          context: { ten: input.name, khoa_hoc: input.itemTitle, ma_don: order.code, order_id: order.id, so_tien: formatVND(order.amount_vnd) },
+        });
+      }
+      return order;
+    }
     if (error.code !== "23505") throw error; // 23505 = trùng unique -> thử mã khác
   }
   throw new Error("Không tạo được mã đơn");
@@ -74,17 +91,43 @@ export async function grantCourse(opts: {
   name?: string | null;
   phone?: string | null;
   course: Pick<CourseRow, "id" | "access_days" | "gr_campaign_id">;
+  /** Số ngày học riêng cho lần cấp này (vd từ API ngoài) — vẫn không quá 12 tháng */
+  days?: number | null;
 }) {
   const db = createAdminSupabase();
   const userId = await ensureStudent(opts.email, opts.name, opts.phone);
-  // Mọi khóa học tối đa 12 tháng (không còn học trọn đời)
-  const expires = new Date(Date.now() + accessDaysOf(opts.course) * 86_400_000).toISOString();
+  // Mọi khóa học tối đa 12 tháng (không còn học trọn đời).
+  // Đang có hạn dài hơn (vd từ gói Member) thì giữ nguyên, không rút ngắn.
+  const now = Date.now();
+  const days = opts.days && opts.days > 0 ? Math.min(opts.days, MAX_ACCESS_DAYS) : accessDaysOf(opts.course);
+  const fresh = now + days * 86_400_000;
+  const { data: current } = await db
+    .from("enrollments")
+    .select("id, status, expires_at")
+    .eq("user_id", userId)
+    .eq("course_id", opts.course.id)
+    .maybeSingle();
+  const keep = current?.expires_at ? new Date(current.expires_at).getTime() : 0;
+  const expires = new Date(Math.min(Math.max(fresh, keep), now + MAX_ACCESS_DAYS * 86_400_000)).toISOString();
+  const wasActive = current?.status === "active" && keep > now;
 
   const { error } = await db.from("enrollments").upsert(
     { user_id: userId, course_id: opts.course.id, status: "active", expires_at: expires },
     { onConflict: "user_id,course_id" },
   );
   if (error) throw error;
+
+  // Automation: dừng chuỗi "mời mua", bắt đầu chuỗi hướng dẫn học (chỉ khi là lần mở mới)
+  await stopAutomation("enrolled", { email: opts.email });
+  if (!wasActive) {
+    const { data: c } = await db.from("courses").select("title, slug").eq("id", opts.course.id).maybeSingle();
+    await enqueueAutomation("enrolled", {
+      email: opts.email,
+      userId,
+      dedupeKey: `enrolled:${userId}:${opts.course.id}:${expires.slice(0, 10)}`,
+      context: { ten: opts.name ?? undefined, khoa_hoc: c?.title, course_id: opts.course.id, course_slug: c?.slug },
+    });
+  }
 
   await addToGetResponse({
     email: opts.email,
@@ -95,39 +138,73 @@ export async function grantCourse(opts: {
   return userId;
 }
 
-/** Đánh dấu đơn đã thanh toán + mở khóa. An toàn khi gọi lặp (đơn paid rồi thì bỏ qua). */
+/**
+ * Đánh dấu đơn đã thanh toán + mở khóa học / kích hoạt gói thành viên.
+ * An toàn khi gọi lặp hoặc đồng thời (webhook gửi lại): "giành" đơn bằng UPDATE ... WHERE status='pending' trước,
+ * chỉ lượt giành được mới cấp quyền; cấp lỗi thì trả đơn về pending để thử lại.
+ */
 export async function fulfillOrder(orderId: string, method: string, txRef?: string | null) {
   const db = createAdminSupabase();
-  const { data: order } = await db.from("orders").select("*").eq("id", orderId).single();
-  if (!order) throw new Error("Không thấy đơn");
-  if (order.status === "paid") return order as OrderRow;
-
-  const { data: course } = await db
-    .from("courses")
-    .select("id, access_days, gr_campaign_id")
-    .eq("id", order.course_id)
-    .single();
-  if (!course) throw new Error("Đơn không gắn khóa học");
-
-  const userId = await grantCourse({
-    email: order.customer_email,
-    name: order.customer_name,
-    phone: order.customer_phone,
-    course,
-  });
-
-  const { data: updated, error } = await db
+  const { data: claimed } = await db
     .from("orders")
-    .update({
-      status: "paid",
-      user_id: userId,
-      payment_method: method,
-      tx_reference: txRef ?? null,
-      paid_at: new Date().toISOString(),
-    })
+    .update({ status: "paid", payment_method: method, tx_reference: txRef ?? null, paid_at: new Date().toISOString() })
     .eq("id", orderId)
+    .eq("status", "pending")
     .select("*")
-    .single();
-  if (error) throw error;
-  return updated as OrderRow;
+    .maybeSingle();
+  if (!claimed) {
+    const { data: order } = await db.from("orders").select("*").eq("id", orderId).maybeSingle();
+    if (!order) throw new Error("Không thấy đơn");
+    return order as OrderRow; // đã xử lý trước đó (hoặc đơn bị hủy)
+  }
+  const order = claimed as OrderRow & { plan_id: string | null };
+
+  try {
+    let userId: string;
+    let itemTitle = "";
+    let courseSlug: string | undefined;
+    if (order.plan_id) {
+      const { data: plan } = await db.from("membership_plans").select(PLAN_COLUMNS).eq("id", order.plan_id).single();
+      if (!plan) throw new Error("Đơn gắn gói thành viên không còn tồn tại");
+      itemTitle = (plan as MembershipPlan).name;
+      ({ userId } = await grantMembership({
+        email: order.customer_email!, name: order.customer_name, phone: order.customer_phone,
+        plan: plan as MembershipPlan, source: "order", orderId: order.id,
+      }));
+    } else {
+      const { data: course } = await db
+        .from("courses")
+        .select("id, title, slug, access_days, gr_campaign_id")
+        .eq("id", order.course_id)
+        .single();
+      if (!course) throw new Error("Đơn không gắn khóa học");
+      itemTitle = course.title;
+      courseSlug = course.slug;
+      userId = await grantCourse({ email: order.customer_email!, name: order.customer_name, phone: order.customer_phone, course });
+    }
+
+    const { data: updated } = await db.from("orders").update({ user_id: userId }).eq("id", orderId).select("*").single();
+
+    await sendMetaPurchase({
+      code: order.code, orderId: order.id, amount_vnd: order.amount_vnd,
+      customer_email: order.customer_email, customer_phone: order.customer_phone, customer_name: order.customer_name,
+      itemId: order.plan_id ?? order.course_id ?? "unknown", itemName: itemTitle,
+    });
+    await stopAutomation("order_paid", { orderId: order.id });
+    await enqueueAutomation("order_paid", {
+      email: order.customer_email!,
+      userId,
+      dedupeKey: `paid:${order.id}`,
+      context: {
+        ten: order.customer_name ?? undefined, khoa_hoc: itemTitle, course_slug: courseSlug,
+        ma_don: order.code, order_id: order.id, so_tien: formatVND(order.amount_vnd),
+      },
+    });
+    return (updated ?? order) as OrderRow;
+  } catch (e) {
+    await db.from("orders").update({ status: "pending", paid_at: null }).eq("id", orderId);
+    throw e;
+  }
 }
+
+export { getPlanBySlug };

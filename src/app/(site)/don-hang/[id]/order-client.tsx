@@ -54,7 +54,7 @@ export function PaymentWatcher({ orderId }: { orderId: string }) {
 }
 
 export function PaidPanel({ email, courseSlug, courseTitle }: { email: string; courseSlug: string; courseTitle: string }) {
-  const loginHref = learnHref(`/hoc/dang-nhap?email=${encodeURIComponent(email)}&from=${encodeURIComponent(`/hoc/${courseSlug}`)}`);
+  const loginHref = learnHref(`/hoc/dang-nhap?email=${encodeURIComponent(email)}&from=${encodeURIComponent(courseSlug ? `/hoc/${courseSlug}` : "/hoc")}`);
   return (
     <Card className="p-8 text-center">
       <span className="bg-success-soft text-success mx-auto flex size-14 items-center justify-center rounded-full">

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { GraduationCap, KeyRound, LogOut } from "lucide-react";
+import { GraduationCap, KeyRound, LogOut, Sparkles } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Avatar } from "@/components/ui/avatar";
 import { getStudent } from "@/lib/learning";
@@ -26,6 +26,12 @@ export async function StudentHeader() {
             className="text-foreground hover:bg-muted inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium"
           >
             <GraduationCap className="size-4" /> Khóa của tôi
+          </Link>
+          <Link
+            href="/hoc/cong-cu"
+            className="text-muted-foreground hover:bg-muted hover:text-foreground inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium"
+          >
+            <Sparkles className="size-4" /> Công cụ AI
           </Link>
           <Link
             href="/hoc/kich-hoat"

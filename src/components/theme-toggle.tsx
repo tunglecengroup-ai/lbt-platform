@@ -1,24 +1,26 @@
 "use client";
 
 import { Moon, Sun } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
+
+// Trạng thái sáng/tối đọc thẳng từ class .dark trên <html> (script đầu trang đã đặt trước khi hydrate)
+const listeners = new Set<() => void>();
+const subscribe = (cb: () => void) => {
+  listeners.add(cb);
+  return () => listeners.delete(cb);
+};
+const isDark = () => document.documentElement.classList.contains("dark");
 
 export function ThemeToggle() {
-  const [dark, setDark] = useState(false);
-
-  useEffect(() => {
-    const stored = localStorage.getItem("theme");
-    const prefers = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    const isDark = stored ? stored === "dark" : prefers;
-    setDark(isDark);
-    document.documentElement.classList.toggle("dark", isDark);
-  }, []);
+  const dark = useSyncExternalStore(subscribe, isDark, () => false);
 
   function toggle() {
-    const next = !dark;
-    setDark(next);
+    const next = !isDark();
     document.documentElement.classList.toggle("dark", next);
-    localStorage.setItem("theme", next ? "dark" : "light");
+    try {
+      localStorage.setItem("theme", next ? "dark" : "light");
+    } catch {}
+    listeners.forEach((l) => l());
   }
 
   return (

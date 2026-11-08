@@ -8,11 +8,23 @@ import { PostCard } from "@/components/post-card";
 import { listPublishedCourses } from "@/lib/courses";
 import { listFeaturedReviews, listPublishedPosts } from "@/lib/content";
 import { formatVND } from "@/lib/utils";
-import { TRIAL_VIDEO, learnHref, youtubeIdFrom } from "@/lib/site";
+import { AUTHOR, SOCIALS, TRIAL_VIDEO, TRIAL_VIDEO_META, learnHref, marketingHref, youtubeIdFrom } from "@/lib/site";
+import { JsonLd } from "@/components/json-ld";
+import { faqLd, orgId, personId } from "@/lib/schema";
+
+const FAQS = [
+  { q: "Người mới chưa biết gì có học được quảng cáo Facebook không?", a: "Được. Khóa Facebook Ads Từ Cơ Bản Đến Nâng Cao bắt đầu từ cách tạo tài khoản, fanpage, đọc chỉ số rồi mới tới tối ưu và scale — mỗi bài làm theo được ngay." },
+  { q: "Học online như thế nào, có hết hạn không?", a: "Học trên điện thoại hoặc máy tính tại hoc.lebatung.com, đăng nhập bằng email nhận mã (không cần mật khẩu). Mỗi khóa có thời hạn học tối đa 12 tháng kể từ ngày kích hoạt." },
+  { q: "Thanh toán xong bao lâu thì vào học được?", a: "Chuyển khoản qua mã QR đúng nội dung, hệ thống tự mở khóa trong vài giây và gửi email hướng dẫn vào học." },
+  { q: "Lê Bá Tùng là ai?", a: "Lê Bá Tùng là chuyên gia quảng cáo Facebook và marketing online với 10 năm thực chiến cho mô hình bán hàng online, COD tại Việt Nam, người sáng lập Học viện Lê Bá Tùng và kênh YouTube @lebatungofficial." },
+  { q: "Gói thành viên LBT Member khác gì mua lẻ từng khóa?", a: "LBT Member mở tất cả khóa học hiện có và khóa mới trong thời gian thành viên, kèm bộ công cụ AI viết content, chấm điểm quảng cáo, chấm điểm fanpage và tạo landing page." },
+];
 
 export const metadata = {
   title: "Học viện Lê Bá Tùng — Khóa học Facebook Ads & Marketing thực chiến",
   description: "Khóa học online quảng cáo Facebook, marketing thực chiến từ chuyên gia 10 năm. Học mọi lúc, kích hoạt tự động sau khi chuyển khoản.",
+  alternates: { canonical: "/" },
+  openGraph: { images: [{ url: "https://i.ytimg.com/vi/u3PZ56cEFFE/maxresdefault.jpg", width: 1280, height: 720 }] },
 };
 
 const perks = [
@@ -31,6 +43,25 @@ export default async function HomePage() {
 
   return (
     <main>
+      {trialId && (
+        <JsonLd
+          data={{
+            "@context": "https://schema.org",
+            "@type": "VideoObject",
+            name: TRIAL_VIDEO_META.title,
+            description: TRIAL_VIDEO_META.description,
+            thumbnailUrl: [`https://i.ytimg.com/vi/${trialId}/maxresdefault.jpg`, `https://i.ytimg.com/vi/${trialId}/hqdefault.jpg`],
+            uploadDate: TRIAL_VIDEO_META.uploadDate,
+            duration: TRIAL_VIDEO_META.duration,
+            embedUrl: `https://www.youtube.com/embed/${trialId}`,
+            contentUrl: `https://www.youtube.com/watch?v=${trialId}`,
+            inLanguage: "vi",
+            author: { "@id": personId() },
+            publisher: { "@id": orgId() },
+          }}
+        />
+      )}
+      <JsonLd data={faqLd(FAQS)} />
       {/* Section 1 — video học thử Facebook Ads */}
       <section className="border-b bg-gradient-to-b from-primary/10 to-transparent">
         <div className="mx-auto max-w-5xl px-4 pt-10 pb-12 text-center md:px-6 md:pt-16 md:pb-16">
@@ -152,6 +183,43 @@ export default async function HomePage() {
           </div>
         </section>
       )}
+      {/* Người hướng dẫn — E-E-A-T: kinh nghiệm thật, ai chịu trách nhiệm nội dung */}
+      <section className="mx-auto mt-16 max-w-6xl px-4 md:px-6">
+        <div className="bg-muted/40 grid items-center gap-6 rounded-2xl border p-6 md:grid-cols-[1fr_2fr] md:p-10">
+          <div>
+            <p className="text-primary text-sm font-semibold">Người hướng dẫn</p>
+            <h2 className="mt-1 text-2xl font-semibold tracking-tight">{AUTHOR.name}</h2>
+            <p className="text-muted-foreground mt-1 text-sm">{AUTHOR.jobTitle}</p>
+          </div>
+          <div className="space-y-3 text-sm leading-relaxed">
+            <p>{AUTHOR.bio}</p>
+            <p>Mọi bài học đều là quy trình tôi đã áp dụng thật trên tài khoản quảng cáo của mình và học viên — cập nhật theo thay đổi thuật toán, chính sách của Meta mỗi năm.</p>
+            <p className="flex flex-wrap gap-x-4 gap-y-1">
+              <Link href={AUTHOR.aboutPath} className="text-primary font-medium hover:underline">Câu chuyện của Lê Bá Tùng →</Link>
+              {SOCIALS.map((u) => (
+                <a key={u} href={u} target="_blank" rel="noopener" className="text-muted-foreground hover:text-foreground">
+                  {u.includes("facebook") ? "Facebook" : u.includes("youtube") ? "YouTube" : "TikTok"}
+                </a>
+              ))}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto mt-16 mb-16 max-w-3xl px-4 md:px-6">
+        <h2 className="text-2xl font-semibold tracking-tight">Câu hỏi thường gặp</h2>
+        <div className="mt-6 divide-y rounded-lg border">
+          {FAQS.map((f) => (
+            <details key={f.q} className="p-4">
+              <summary className="cursor-pointer font-medium">{f.q}</summary>
+              <p className="text-muted-foreground mt-2 text-sm leading-relaxed">{f.a}</p>
+            </details>
+          ))}
+        </div>
+        <p className="text-muted-foreground mt-4 text-sm">
+          Muốn học tất cả khóa + công cụ AI? <Link href={marketingHref("/thanh-vien")} className="text-primary font-medium hover:underline">Xem gói LBT Member</Link>
+        </p>
+      </section>
     </main>
   );
 }

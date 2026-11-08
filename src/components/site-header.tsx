@@ -15,6 +15,7 @@ async function isLoggedIn() {
 
 const links = [
   { href: "/#khoa-hoc", label: "Khóa học" },
+  { href: "/thanh-vien", label: "Thành viên" },
   { href: "/blog", label: "Blog" },
   { href: "/p/le-ba-tung-la-ai", label: "Về Lê Bá Tùng", className: "hidden md:block" },
   { href: "/p/lien-he", label: "Liên hệ", className: "hidden md:block" },

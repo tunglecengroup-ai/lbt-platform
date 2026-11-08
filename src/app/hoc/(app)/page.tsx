@@ -1,14 +1,18 @@
 import Link from "next/link";
-import { PlayCircle, Clock, BookOpen, CheckCircle2 } from "lucide-react";
+import { PlayCircle, Clock, BookOpen, CheckCircle2, Crown, Sparkles } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { getMyCourses, getStudent, resumeLesson } from "@/lib/learning";
 import { CourseCover } from "@/components/course-cover";
+import { getActiveMembership } from "@/lib/membership";
+import { marketingHref } from "@/lib/site";
+import { formatDate } from "@/lib/utils";
 
 export default async function MyCoursesPage() {
   const [currentStudent, myCourses] = await Promise.all([getStudent(), getMyCourses()]);
+  const membership = await getActiveMembership(currentStudent.id);
   const firstName = currentStudent.name.split(" ").pop();
 
   return (
@@ -22,6 +26,35 @@ export default async function MyCoursesPage() {
         </p>
       </div>
 
+      <div className="mb-6 grid gap-4 sm:grid-cols-2">
+        {membership ? (
+          <Card className="flex items-center gap-3 border-warning/40 p-4">
+            <Crown className="text-warning size-6 shrink-0" />
+            <div className="text-sm">
+              <p className="font-semibold">{membership.plan.name}</p>
+              <p className="text-muted-foreground">Thành viên đến {formatDate(membership.expires_at)} — học tất cả khóa trong gói.</p>
+            </div>
+          </Card>
+        ) : (
+          <Card className="flex items-center gap-3 p-4">
+            <Crown className="text-warning size-6 shrink-0" />
+            <div className="flex-1 text-sm">
+              <p className="font-semibold">Lên LBT Member</p>
+              <p className="text-muted-foreground">Học tất cả khóa + công cụ AI trong 12 tháng.</p>
+            </div>
+            <Button asChild size="sm" variant="outline"><Link href={marketingHref("/thanh-vien")}>Xem gói</Link></Button>
+          </Card>
+        )}
+        <Card className="flex items-center gap-3 p-4">
+          <Sparkles className="text-primary size-6 shrink-0" />
+          <div className="flex-1 text-sm">
+            <p className="font-semibold">Công cụ AI quảng cáo</p>
+            <p className="text-muted-foreground">Viết content, chấm điểm quảng cáo & fanpage, tạo landing.</p>
+          </div>
+          <Button asChild size="sm"><Link href="/hoc/cong-cu">Mở</Link></Button>
+        </Card>
+      </div>
+
       {myCourses.length === 0 && (
         <Card className="p-8 text-center">
           <p className="font-medium">Bạn chưa có khóa học nào</p>
@@ -29,7 +62,7 @@ export default async function MyCoursesPage() {
             Nếu đã mua trên Edubit hoặc vừa chuyển khoản, hãy đăng nhập đúng email đã đăng ký hoặc liên hệ hỗ trợ.
           </p>
           <div className="mt-4 flex flex-wrap justify-center gap-2">
-            <Button asChild><Link href="/#khoa-hoc">Xem các khóa học</Link></Button>
+            <Button asChild><Link href={marketingHref("/#khoa-hoc")}>Xem các khóa học</Link></Button>
             <Button asChild variant="outline"><Link href="/hoc/kich-hoat">Tôi có mã kích hoạt</Link></Button>
           </div>
         </Card>

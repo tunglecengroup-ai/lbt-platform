@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
+  Award,
   ArrowLeft,
   PlayCircle,
   CheckCircle2,
@@ -75,12 +76,20 @@ export default async function CoursePage({
           </div>
           <Progress value={progress} />
         </div>
-        <Button asChild className="sm:w-auto">
-          <Link href={startHref}>
-            <PlayCircle className="size-4" />
-            {done === 0 ? "Bắt đầu học" : "Tiếp tục học"}
-          </Link>
-        </Button>
+        {course.enrolled && total > 0 && done >= total ? (
+          <Button asChild className="sm:w-auto">
+            <Link href={`/hoc/chung-nhan/${course.slug}`}>
+              <Award className="size-4" /> Nhận chứng nhận
+            </Link>
+          </Button>
+        ) : (
+          <Button asChild className="sm:w-auto">
+            <Link href={startHref}>
+              <PlayCircle className="size-4" />
+              {done === 0 ? "Bắt đầu học" : "Tiếp tục học"}
+            </Link>
+          </Button>
+        )}
       </Card>
 
       {/* Danh sách chương */}

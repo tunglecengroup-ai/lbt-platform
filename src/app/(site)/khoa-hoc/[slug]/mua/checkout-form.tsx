@@ -8,12 +8,13 @@ import { checkout, type CheckoutState } from "./actions";
 const inputClass =
   "bg-background focus:border-primary focus:ring-primary/20 h-11 w-full rounded-md border px-3 text-sm outline-none focus:ring-2";
 
-export function CheckoutForm({ slug, defaultEmail, defaultName }: { slug: string; defaultEmail?: string; defaultName?: string }) {
+export function CheckoutForm({ slug, kind = "course", defaultEmail, defaultName }: { slug: string; kind?: "course" | "plan"; defaultEmail?: string; defaultName?: string }) {
   const [state, action, pending] = useActionState<CheckoutState, FormData>(checkout, {});
 
   return (
     <form action={action} className="space-y-4">
       <input type="hidden" name="slug" value={slug} />
+      <input type="hidden" name="kind" value={kind} />
       <div>
         <label htmlFor="name" className="mb-1.5 block text-sm font-medium">Họ và tên</label>
         <input id="name" name="name" required autoComplete="name" defaultValue={defaultName} className={inputClass} />

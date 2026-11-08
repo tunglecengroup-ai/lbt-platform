@@ -7,6 +7,7 @@ import { getPublishedOutline, outlineStats } from "@/lib/courses";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { formatVND } from "@/lib/utils";
 import { CheckoutForm } from "./checkout-form";
+import { TrackEvent } from "@/components/track-event";
 
 export const metadata = { title: "Đăng ký khóa học — Học viện Lê Bá Tùng", robots: { index: false } };
 
@@ -20,6 +21,7 @@ export default async function CheckoutPage({ params }: PageProps<"/khoa-hoc/[slu
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-8 md:px-6 md:py-12">
+      <TrackEvent event="begin_checkout" item={{ id: course.id, name: course.title, price: course.price_vnd, category: "course" }} />
       <Link href={`/khoa-hoc/${slug}`} className="text-muted-foreground hover:text-foreground mb-6 inline-flex items-center gap-1.5 text-sm font-medium">
         <ArrowLeft className="size-4" /> Quay lại khóa học
       </Link>

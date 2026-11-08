@@ -6,6 +6,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Mail, LoaderCircle, GraduationCap, KeyRound, User, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createBrowserSupabase } from "@/lib/supabase/client";
+import { afterSignIn } from "@/app/hoc/actions";
+import { track } from "@/lib/track";
 import { marketingHref } from "@/lib/site";
 
 const inputClass =
@@ -79,6 +81,8 @@ export function StudentAuthForm({ mode }: { mode: "login" | "register" }) {
         .update({ full_name: fullName.trim(), phone: normalizePhone(phone) })
         .eq("id", data.user.id);
     }
+    await afterSignIn().catch(() => {});
+    if (register) track("sign_up", { method: "email" });
     router.replace(from);
     router.refresh();
   }

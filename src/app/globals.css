@@ -167,3 +167,12 @@
 .post-content th, .post-content td { border: 1px solid hsl(var(--border)); padding: 0.5em 0.75em; text-align: left; }
 .post-content hr { border-top: 1px solid hsl(var(--border)); margin: 2em 0; }
 .post-content iframe { width: 100%; aspect-ratio: 16 / 9; height: auto; border-radius: var(--radius); }
+
+/* In chứng nhận: chỉ in tờ chứng nhận, khổ A4 ngang, giữ màu */
+@media print {
+  @page { size: A4 landscape; margin: 0; }
+  body * { visibility: hidden; }
+  #certificate, #certificate * { visibility: visible; }
+  #certificate { position: fixed; inset: 0; max-width: none; width: 100vw; height: 100vh; border: 0; border-radius: 0; box-shadow: none; aspect-ratio: auto; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}

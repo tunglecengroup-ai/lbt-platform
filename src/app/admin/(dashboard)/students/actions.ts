@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { assertAdmin } from "@/lib/admin-guard";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import { grantCourse } from "@/lib/orders";
+import { redirect } from "next/navigation";
 
 export type ImportState = { message?: string; errors?: string[] };
 
@@ -93,4 +94,21 @@ export async function addCoursesToStudent(_prev: ImportState, form: FormData): P
   }
   revalidatePath("/admin/students", "layout");
   return { message: ok ? `Đã thêm ${ok} khóa cho ${profile.full_name || profile.email}` : undefined, errors };
+}
+
+/** Xóa hẳn 1 quyền học (khác "Khóa quyền" là tạm khóa, mở lại được) */
+export async function deleteEnrollment(form: FormData) {
+  await assertAdmin();
+  await createAdminSupabase().from("enrollments").delete().eq("id", String(form.get("id")));
+  revalidatePath("/admin/students", "layout");
+}
+
+/** Xóa học viên khỏi hệ thống: tài khoản đăng nhập + hồ sơ + quyền học + tiến độ (đơn hàng giữ lại để đối soát) */
+export async function deleteStudent(form: FormData) {
+  await assertAdmin();
+  const userId = String(form.get("user_id"));
+  const { error } = await createAdminSupabase().auth.admin.deleteUser(userId);
+  if (error) throw new Error(`Không xóa được tài khoản: ${error.message}`);
+  revalidatePath("/admin/students", "layout");
+  redirect("/admin/students?deleted=1");
 }

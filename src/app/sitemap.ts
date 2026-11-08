@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic";
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const items: MetadataRoute.Sitemap = [
     { url: siteUrl, changeFrequency: "weekly", priority: 1 },
+    { url: `${siteUrl}/thanh-vien`, changeFrequency: "weekly", priority: 0.9 },
     { url: `${siteUrl}/blog`, changeFrequency: "weekly", priority: 0.7 },
   ];
   if (!isSupabaseConfigured) return items;

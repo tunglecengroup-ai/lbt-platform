@@ -12,15 +12,23 @@ import { createAdminSupabase } from "@/lib/supabase/admin";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { lessonEmbedUrl } from "@/lib/video";
 import { formatDuration, formatVND } from "@/lib/utils";
-import { learnHref } from "@/lib/site";
+import { learnHref, siteUrl } from "@/lib/site";
+import { JsonLd } from "@/components/json-ld";
+import { TrackEvent } from "@/components/track-event";
+import { breadcrumbLd, orgId, personId } from "@/lib/schema";
 import { accessDaysOf } from "@/lib/orders";
 
 export async function generateMetadata({ params }: PageProps<"/khoa-hoc/[slug]">) {
   const { slug } = await params;
   const course = await getPublishedOutline(slug);
-  return course
-    ? { title: `${course.title} — Học viện Lê Bá Tùng`, description: course.subtitle ?? undefined }
-    : {};
+  if (!course) return {};
+  const description = course.subtitle || course.description?.slice(0, 155) || `Khóa học ${course.title} của Lê Bá Tùng.`;
+  return {
+    title: `${course.title} — Học viện Lê Bá Tùng`,
+    description,
+    alternates: { canonical: `/khoa-hoc/${course.slug}` },
+    openGraph: { type: "website", title: course.title, description, images: course.cover_url ? [course.cover_url] : undefined },
+  };
 }
 
 export default async function CourseDetailPage({ params }: PageProps<"/khoa-hoc/[slug]">) {
@@ -64,6 +72,39 @@ export default async function CourseDetailPage({ params }: PageProps<"/khoa-hoc/
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-8 md:px-6 md:py-12">
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "Course",
+          "@id": `${siteUrl}/khoa-hoc/${course.slug}#course`,
+          name: course.title,
+          description: course.subtitle || course.description || course.title,
+          url: `${siteUrl}/khoa-hoc/${course.slug}`,
+          image: course.cover_url || undefined,
+          inLanguage: "vi",
+          provider: { "@id": orgId() },
+          creator: { "@id": personId() },
+          ...(reviews.length
+            ? { aggregateRating: { "@type": "AggregateRating", ratingValue: Number(avgRating.toFixed(1)), reviewCount: reviews.length, bestRating: 5 } }
+            : {}),
+          offers: {
+            "@type": "Offer",
+            category: course.price_vnd ? "Paid" : "Free",
+            price: course.price_vnd,
+            priceCurrency: "VND",
+            availability: "https://schema.org/InStock",
+            url: `${siteUrl}/khoa-hoc/${course.slug}/mua`,
+          },
+          hasCourseInstance: {
+            "@type": "CourseInstance",
+            courseMode: "Online",
+            courseWorkload: `PT${Math.max(1, Math.round(totalSec / 3600))}H`,
+            instructor: { "@id": personId() },
+          },
+        }}
+      />
+      <JsonLd data={breadcrumbLd([{ name: "Trang chủ", path: "/" }, { name: "Khóa học", path: "/#khoa-hoc" }, { name: course.title, path: `/khoa-hoc/${course.slug}` }])} />
+      <TrackEvent event="view_item" item={{ id: course.id, name: course.title, price: course.price_vnd, category: "course" }} />
       <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
         <div className="min-w-0">
           <p className="text-primary text-sm font-semibold">{course.instructor}</p>

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, BookOpen, CircleCheck, Circle, Clock, Mail, Phone, PlayCircle, Trophy } from "lucide-react";
+import { ArrowLeft, BookOpen, CircleCheck, Circle, Clock, Crown, Mail, Phone, PlayCircle, Trash2, Trophy } from "lucide-react";
 import { Topbar, MobileHeading } from "@/components/topbar";
 import { PageBody } from "@/components/ui/page";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,7 +12,9 @@ import { StatCard } from "@/components/ui/stat-card";
 import { ConfirmButton } from "@/components/confirm-button";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import { formatDate, formatDuration, timeAgo } from "@/lib/utils";
-import { restoreEnrollment, revokeEnrollment } from "../actions";
+import { deleteEnrollment, deleteStudent, restoreEnrollment, revokeEnrollment } from "../actions";
+import { GrantPlanForm } from "./grant-plan-form";
+import { marketingHref } from "@/lib/site";
 import { AddCoursesForm } from "./add-courses-form";
 
 export const dynamic = "force-dynamic";
@@ -26,11 +28,16 @@ export default async function StudentDetailPage({ params }: PageProps<"/admin/st
   const { data: profile } = await db.from("profiles").select("id, email, full_name, phone, created_at").eq("id", id).maybeSingle();
   if (!profile) notFound();
 
-  const [{ data: enrollments }, { data: courses }, { data: progress }] = await Promise.all([
+  const [{ data: enrollments }, { data: courses }, { data: progress }, { data: memberships }, { data: plans }, { data: orders }] = await Promise.all([
     db.from("enrollments").select("id, course_id, status, enrolled_at, expires_at").eq("user_id", id).order("enrolled_at", { ascending: false }),
     db.from("courses").select("id, title").order("position"),
     db.from("progress").select("lesson_id, course_id, watched_seconds, completed_at, updated_at").eq("user_id", id),
+    db.from("memberships").select("id, status, expires_at, plan:membership_plans(name)").eq("user_id", id).order("expires_at", { ascending: false }),
+    db.from("membership_plans").select("id, name, duration_days").order("position"),
+    db.from("orders").select("id, code, amount_vnd, status, created_at, courses(title), membership_plans(name)").eq("user_id", id).order("created_at", { ascending: false }).limit(20),
   ]);
+  const { data: certs } = await db.from("certificates").select("course_id, code").eq("user_id", id);
+  const certByCourse = new Map((certs ?? []).map((c) => [c.course_id, c.code]));
 
   const courseIds = (enrollments ?? []).map((e) => e.course_id);
   const [{ data: chapters }, { data: lessons }] = courseIds.length
@@ -155,19 +162,30 @@ export default async function StudentDetailPage({ params }: PageProps<"/admin/st
                       <CardDescription>
                         Ghi danh {formatDate(c.enrolled_at)} · {c.expires_at ? `Hết hạn ${formatDate(c.expires_at)}` : "Học trọn đời"}
                         {c.lastHere && ` · Học gần nhất ${timeAgo(c.lastHere)}`}
+                        {certByCourse.get(c.course_id) && (
+                          <> · <a href={marketingHref(`/chung-nhan/${certByCourse.get(c.course_id)}`)} target="_blank" className="text-success font-medium hover:underline">Chứng nhận {certByCourse.get(c.course_id)}</a></>
+                        )}
                       </CardDescription>
                     </div>
-                    {c.status === "active" ? (
-                      <form action={revokeEnrollment}>
+                    <div className="flex shrink-0 items-center gap-1">
+                      {c.status === "active" ? (
+                        <form action={revokeEnrollment}>
+                          <input type="hidden" name="id" value={c.id} />
+                          <ConfirmButton variant="ghost" size="sm" message={`Tạm khóa quyền học "${c.title}" của ${profile.email}? (Mở lại được)`}>Khóa quyền</ConfirmButton>
+                        </form>
+                      ) : (
+                        <form action={restoreEnrollment}>
+                          <input type="hidden" name="id" value={c.id} />
+                          <Button type="submit" variant="ghost" size="sm">Mở lại</Button>
+                        </form>
+                      )}
+                      <form action={deleteEnrollment}>
                         <input type="hidden" name="id" value={c.id} />
-                        <ConfirmButton variant="ghost" size="sm" message={`Khóa quyền học "${c.title}" của ${profile.email}?`}>Khóa quyền</ConfirmButton>
+                        <ConfirmButton variant="ghost" size="sm" className="text-danger" message={`XÓA HẲN quyền học "${c.title}" của ${profile.email}? Không hoàn tác được.`}>
+                          <Trash2 className="size-4" /> Xóa quyền
+                        </ConfirmButton>
                       </form>
-                    ) : (
-                      <form action={restoreEnrollment}>
-                        <input type="hidden" name="id" value={c.id} />
-                        <Button type="submit" variant="ghost" size="sm">Mở lại</Button>
-                      </form>
-                    )}
+                    </div>
                   </CardHeader>
                   <CardContent className="pt-0">
                     <div className="mb-3 flex items-center gap-3">
@@ -239,6 +257,52 @@ export default async function StudentDetailPage({ params }: PageProps<"/admin/st
 
             <Card className="h-fit">
               <CardHeader>
+                <div>
+                  <CardTitle className="flex items-center gap-2"><Crown className="text-warning size-4" /> Gói thành viên</CardTitle>
+                  <CardDescription>Mở tất cả khóa của gói + công cụ AI. Gia hạn nối tiếp, tối đa 12 tháng.</CardDescription>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {(memberships ?? []).length > 0 && (
+                  <ul className="space-y-1 text-sm">
+                    {(memberships ?? []).map((m) => {
+                      const live = m.status === "active" && new Date(m.expires_at) > now;
+                      return (
+                        <li key={m.id} className="flex items-center justify-between gap-2">
+                          <span>{(m.plan as unknown as { name: string } | null)?.name}</span>
+                          <Badge tone={live ? "success" : "neutral"}>{live ? `đến ${formatDate(m.expires_at)}` : m.status === "cancelled" ? "Đã hủy" : "Hết hạn"}</Badge>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+                <GrantPlanForm userId={profile.id} plans={plans ?? []} />
+              </CardContent>
+            </Card>
+
+            {(orders ?? []).length > 0 && (
+              <Card className="h-fit">
+                <CardHeader><CardTitle>Đơn hàng</CardTitle></CardHeader>
+                <CardContent className="pt-0">
+                  <ul className="divide-y text-sm">
+                    {(orders ?? []).map((o) => (
+                      <li key={o.id} className="flex items-center justify-between gap-2 py-2">
+                        <div className="min-w-0">
+                          <p className="truncate font-medium">{(o.courses as unknown as { title: string } | null)?.title ?? (o.membership_plans as unknown as { name: string } | null)?.name ?? "—"}</p>
+                          <p className="text-muted-foreground text-xs">{o.code} · {formatDate(o.created_at)}</p>
+                        </div>
+                        <Badge tone={o.status === "paid" ? "success" : o.status === "pending" ? "warning" : "neutral"}>
+                          {o.status === "paid" ? "Đã trả" : o.status === "pending" ? "Chờ trả" : o.status}
+                        </Badge>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            )}
+
+            <Card className="h-fit">
+              <CardHeader>
                 <CardTitle>Hoạt động học gần đây</CardTitle>
               </CardHeader>
               <CardContent className="pt-0">
@@ -261,6 +325,23 @@ export default async function StudentDetailPage({ params }: PageProps<"/admin/st
                     })}
                   </ul>
                 )}
+              </CardContent>
+            </Card>
+
+            <Card className="border-danger/40 h-fit">
+              <CardHeader>
+                <div>
+                  <CardTitle className="text-danger">Xóa học viên khỏi hệ thống</CardTitle>
+                  <CardDescription>Xóa tài khoản đăng nhập, hồ sơ, toàn bộ quyền học, gói thành viên và tiến độ. Đơn hàng được giữ lại để đối soát. Không hoàn tác được.</CardDescription>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <form action={deleteStudent}>
+                  <input type="hidden" name="user_id" value={profile.id} />
+                  <ConfirmButton variant="outline" className="text-danger w-full" message={`XÓA VĨNH VIỄN học viên ${profile.email} khỏi hệ thống? Không hoàn tác được.`}>
+                    <Trash2 className="size-4" /> Xóa học viên này
+                  </ConfirmButton>
+                </form>
               </CardContent>
             </Card>
           </div>

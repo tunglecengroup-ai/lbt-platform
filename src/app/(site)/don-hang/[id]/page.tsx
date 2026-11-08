@@ -5,6 +5,10 @@ import { bankInfo, isBankConfigured, vietQrUrl } from "@/lib/payment";
 import { formatVND } from "@/lib/utils";
 import type { OrderRow } from "@/lib/types";
 import { CopyValue, PaidPanel, PaymentWatcher } from "./order-client";
+import { TrackEvent } from "@/components/track-event";
+
+/** Chỉ bắn Purchase cho đơn vừa trả trong 24 giờ (mở lại đơn cũ không tính thêm) */
+const paidRecently = (iso: string) => new Date().getTime() - new Date(iso).getTime() < 86_400_000;
 
 export const metadata = { title: "Thanh toán đơn hàng — Học viện Lê Bá Tùng", robots: { index: false } };
 
@@ -13,15 +17,24 @@ export default async function OrderPage({ params }: PageProps<"/don-hang/[id]">)
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
 
   const db = createAdminSupabase();
-  const { data } = await db.from("orders").select("*, courses(title, slug)").eq("id", id).maybeSingle();
+  const { data } = await db.from("orders").select("*, courses(title, slug), membership_plans(name)").eq("id", id).maybeSingle();
   if (!data) notFound();
-  const order = data as OrderRow & { courses: { title: string; slug: string } | null };
-  const course = order.courses;
+  const order = data as OrderRow & { courses: { title: string; slug: string } | null; membership_plans: { name: string } | null };
+  // Đơn gói thành viên: hiển thị tên gói, vào học ở trang "Khóa của tôi"
+  const course = order.courses ?? (order.membership_plans ? { title: order.membership_plans.name, slug: "" } : null);
 
   if (order.status === "paid") {
     return (
       <main className="mx-auto max-w-lg px-4 py-12">
         <PaidPanel email={order.customer_email ?? ""} courseSlug={course?.slug ?? ""} courseTitle={course?.title ?? ""} />
+        {order.amount_vnd > 0 && order.paid_at && paidRecently(order.paid_at) && (
+          <TrackEvent
+            event="purchase"
+            transactionId={order.code}
+            value={order.amount_vnd}
+            item={{ id: order.course_id ?? (order as { plan_id?: string | null }).plan_id ?? "unknown", name: course?.title ?? "", price: order.amount_vnd, category: order.course_id ? "course" : "membership" }}
+          />
+        )}
       </main>
     );
   }
@@ -41,7 +54,7 @@ export default async function OrderPage({ params }: PageProps<"/don-hang/[id]">)
     <main className="mx-auto max-w-3xl px-4 py-8 md:py-12">
       <h1 className="text-center text-2xl font-semibold">Quét mã QR để thanh toán</h1>
       <p className="text-muted-foreground mt-1 text-center text-sm">
-        Bước 2/2 — Khóa học được mở tự động ngay khi tiền về tài khoản.
+        Bước 2/2 — Quyền học được mở tự động ngay khi tiền về tài khoản.
       </p>
 
       <Card className="mt-6 grid gap-6 p-6 md:grid-cols-[280px_1fr]">

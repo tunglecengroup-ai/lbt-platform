@@ -31,7 +31,14 @@ export const siteUrl = marketingUrl || clean(process.env.NEXT_PUBLIC_SITE_URL) |
  * Video học thử ở section đầu trang chủ.
  * Dán link YouTube (youtu.be/…, youtube.com/watch?v=…) hoặc ID 11 ký tự. Để trống = hiện khung "sắp ra mắt".
  */
-export const TRIAL_VIDEO = "";
+export const TRIAL_VIDEO = "https://youtu.be/u3PZ56cEFFE";
+/** Thông tin video học thử cho dữ liệu có cấu trúc VideoObject (lấy từ YouTube) */
+export const TRIAL_VIDEO_META = {
+  title: "Chạy Quảng Cáo Facebook Tin Nhắn 2026: Hướng Dẫn Chi Tiết Cho Người Mới (Phần 2)",
+  description: "Bài học thử: hướng dẫn chạy quảng cáo Facebook mục tiêu tin nhắn 2026 từng bước cho người mới, do Lê Bá Tùng hướng dẫn.",
+  uploadDate: "2026-11-08T12:00:36Z",
+  duration: "PT19M44S",
+};
 
 export function youtubeIdFrom(input: string): string | null {
   const s = input.trim();
@@ -39,3 +46,20 @@ export function youtubeIdFrom(input: string): string | null {
   const m = s.match(/(?:youtu\.be\/|v=|\/embed\/|\/shorts\/|\/live\/)([\w-]{11})/);
   return m ? m[1] : null;
 }
+
+// ---------------- THƯƠNG HIỆU & TÁC GIẢ (SEO / E-E-A-T) ----------------
+export const SOCIALS = [
+  "https://www.facebook.com/lebatung.vn1",
+  "https://www.youtube.com/@lebatungofficial",
+  "https://www.tiktok.com/@lebatung.com",
+];
+export const BRAND = {
+  name: "Học viện Lê Bá Tùng",
+  description: "Đào tạo quảng cáo Facebook, marketing online và ứng dụng AI thực chiến cho chủ shop, người kinh doanh online tại Việt Nam.",
+};
+export const AUTHOR = {
+  name: "Lê Bá Tùng",
+  jobTitle: "Chuyên gia quảng cáo Facebook & marketing online",
+  bio: "10 năm thực chiến chạy quảng cáo Facebook cho mô hình bán hàng online, COD và đào tạo tại Việt Nam. Người sáng lập Học viện Lê Bá Tùng, kênh YouTube @lebatungofficial.",
+  aboutPath: "/p/le-ba-tung-la-ai",
+};

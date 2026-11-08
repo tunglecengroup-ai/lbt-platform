@@ -8,7 +8,7 @@ const isLearnPath = (p: string) =>
   p === "/hoc" || p.startsWith("/hoc/") || p === "/admin" || p.startsWith("/admin/") || p.startsWith("/auth/");
 /** Trang quảng bá (lebatung.com) — vào nhầm tên miền học thì chuyển về */
 const isMarketingPath = (p: string) =>
-  p.startsWith("/khoa-hoc") || p.startsWith("/blog") || p.startsWith("/p/") || p.startsWith("/don-hang");
+  p.startsWith("/khoa-hoc") || p.startsWith("/blog") || p.startsWith("/p/") || p.startsWith("/don-hang") || p.startsWith("/thanh-vien") || p.startsWith("/chung-nhan");
 
 /** Tách 2 tên miền: mỗi trang chỉ sống ở 1 nơi, vào nhầm thì chuyển (giữ nguyên đường dẫn + query) */
 export function routeByHost(request: NextRequest) {
