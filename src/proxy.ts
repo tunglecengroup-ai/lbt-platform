@@ -41,11 +41,21 @@ export function routeByHost(request: NextRequest) {
  *  • Khu ADMIN     (/admin/*) -> cần cookie "lbt_session" khớp APP_SESSION_SECRET (đăng nhập ở /admin/login)
  * Khi bật tách tên miền (src/lib/site.ts): quảng bá ở lebatung.com, học + admin ở hoc.lebatung.com.
  */
+/** Bài cũ trên lebatung.vn đã xóa hẳn -> 410 Gone để Google gỡ khỏi kết quả tìm kiếm nhanh (so khớp tiền tố vì slug dài) */
+const GONE_PREFIXES = ["/blog/bac-si-nguyen-ngoc", "/blog/founder-do-hai-vuong"];
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   const moved = routeByHost(request);
   if (moved) return moved;
+
+  if (GONE_PREFIXES.some((p) => pathname.startsWith(p))) {
+    return new NextResponse(
+      '<!doctype html><html lang="vi"><meta charset="utf-8"><meta name="robots" content="noindex"><title>Bài viết đã gỡ</title><body style="font-family:sans-serif;text-align:center;padding:64px 16px"><h1>Bài viết này đã được gỡ</h1><p><a href="/blog">Xem các bài viết khác</a></p></body></html>',
+      { status: 410, headers: { "Content-Type": "text/html; charset=utf-8", "X-Robots-Tag": "noindex" } },
+    );
+  }
 
   // ----- Khu admin -----
   if (pathname === "/admin" || pathname.startsWith("/admin/")) {
