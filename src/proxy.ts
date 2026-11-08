@@ -11,10 +11,18 @@ const isMarketingPath = (p: string) =>
   p.startsWith("/khoa-hoc") || p.startsWith("/blog") || p.startsWith("/p/") || p.startsWith("/don-hang") || p.startsWith("/thanh-vien") || p.startsWith("/chung-nhan");
 
 /** Tách 2 tên miền: mỗi trang chỉ sống ở 1 nơi, vào nhầm thì chuyển (giữ nguyên đường dẫn + query) */
+/** Tên miền cũ (Edubit) — chuyển hẳn 301 về trang quảng bá, giữ nguyên đường dẫn (link khóa cũ đã map trong next.config.ts) */
+const LEGACY_HOSTS = new Set(["lebatung.vn", "www.lebatung.vn"]);
+
 export function routeByHost(request: NextRequest) {
-  if (!splitDomains) return null;
   const host = (request.headers.get("host") || "").split(":")[0].toLowerCase();
   const { pathname, search } = request.nextUrl;
+  if (LEGACY_HOSTS.has(host)) {
+    // Khu học/admin trên tên miền cũ -> thẳng sang hoc.lebatung.com, còn lại -> lebatung.com
+    const target = splitDomains && isLearnPath(pathname) ? learnUrl : marketingUrl || "https://lebatung.com";
+    return NextResponse.redirect(target + pathname + search, 301);
+  }
+  if (!splitDomains) return null;
   const go = (base: string, path = pathname) => NextResponse.redirect(base + path + search, 308);
 
   if (host === "www." + marketingHost) return go(marketingUrl);
