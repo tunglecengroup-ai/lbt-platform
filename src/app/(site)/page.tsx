@@ -17,7 +17,7 @@ const FAQS = [
   { q: "Học online như thế nào, có hết hạn không?", a: "Học trên điện thoại hoặc máy tính tại hoc.lebatung.com, đăng nhập bằng email nhận mã (không cần mật khẩu). Mỗi khóa có thời hạn học tối đa 12 tháng kể từ ngày kích hoạt." },
   { q: "Thanh toán xong bao lâu thì vào học được?", a: "Chuyển khoản qua mã QR đúng nội dung, hệ thống tự mở khóa trong vài giây và gửi email hướng dẫn vào học." },
   { q: "Lê Bá Tùng là ai?", a: "Lê Bá Tùng là chuyên gia quảng cáo Facebook và marketing online với 10 năm thực chiến cho mô hình bán hàng online, COD tại Việt Nam, người sáng lập Học viện Lê Bá Tùng và kênh YouTube @lebatungofficial." },
-  { q: "Gói thành viên LBT Member khác gì mua lẻ từng khóa?", a: "LBT Member mở tất cả khóa học hiện có và khóa mới trong thời gian thành viên, kèm bộ công cụ AI viết content, chấm điểm quảng cáo, chấm điểm fanpage và tạo landing page." },
+  { q: "Gói thành viên LBT Member khác gì mua lẻ từng khóa?", a: "LBT Member mở trọn bộ các khóa Facebook Ads, AI và marketing trong gói (xem danh sách ở trang Thành viên), kèm bộ công cụ AI viết content, chấm điểm quảng cáo, chấm điểm fanpage và tạo landing page." },
 ];
 
 export const metadata = {
@@ -217,7 +217,7 @@ export default async function HomePage() {
           ))}
         </div>
         <p className="text-muted-foreground mt-4 text-sm">
-          Muốn học tất cả khóa + công cụ AI? <Link href={marketingHref("/thanh-vien")} className="text-primary font-medium hover:underline">Xem gói LBT Member</Link>
+          Muốn học trọn bộ khóa + công cụ AI? <Link href={marketingHref("/thanh-vien")} className="text-primary font-medium hover:underline">Xem gói LBT Member</Link>
         </p>
       </section>
     </main>

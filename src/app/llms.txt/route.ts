@@ -16,7 +16,7 @@ export async function GET() {
     "",
     "## Trang chính",
     `- [Trang chủ + video học thử quảng cáo Facebook](${siteUrl}/)`,
-    `- [Gói thành viên LBT Member](${siteUrl}/thanh-vien): học tất cả khóa + công cụ AI quảng cáo`,
+    `- [Gói thành viên LBT Member](${siteUrl}/thanh-vien): trọn bộ khóa Facebook Ads + công cụ AI quảng cáo`,
     `- [Về ${AUTHOR.name}](${siteUrl}${AUTHOR.aboutPath})`,
     `- [Blog](${siteUrl}/blog)`,
   ];

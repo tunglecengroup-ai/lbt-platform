@@ -10,21 +10,24 @@ import { formatVND } from "@/lib/utils";
 import { siteUrl } from "@/lib/site";
 
 export const metadata = {
-  title: "LBT Member — Học tất cả khóa + bộ công cụ AI quảng cáo | Học viện Lê Bá Tùng",
+  title: "LBT Member — Trọn bộ khóa Facebook Ads + công cụ AI quảng cáo | Học viện Lê Bá Tùng",
   description:
     "Gói thành viên LBT Member: học toàn bộ khóa Facebook Ads, marketing của Lê Bá Tùng và dùng bộ công cụ AI viết content, chấm điểm quảng cáo, chấm điểm fanpage, tạo landing page.",
   alternates: { canonical: "/thanh-vien" },
 };
 
 const faqs = [
-  { q: "Gói LBT Member gồm những gì?", a: "Quyền học toàn bộ khóa học đang mở bán (kể cả khóa mới ra mắt trong thời gian thành viên) và bộ công cụ AI hỗ trợ làm quảng cáo: viết content, chấm điểm bài quảng cáo, chấm điểm fanpage, tạo landing page bán hàng." },
+  { q: "Gói LBT Member gồm những gì?", a: "Quyền học các khóa học có trong gói (danh sách ngay trên trang này) và bộ công cụ AI hỗ trợ làm quảng cáo: viết content, chấm điểm bài quảng cáo, chấm điểm fanpage, tạo landing page bán hàng." },
   { q: "Thời hạn thành viên tính thế nào?", a: "Tính từ lúc thanh toán thành công. Gia hạn sớm sẽ được cộng nối tiếp, tối đa 12 tháng tính từ thời điểm gia hạn." },
   { q: "Thanh toán xong bao lâu thì vào học được?", a: "Chuyển khoản đúng nội dung, hệ thống tự kích hoạt trong vài giây. Đăng nhập bằng email đã đăng ký tại hoc.lebatung.com, nhận mã đăng nhập qua email, không cần mật khẩu." },
   { q: "Tôi đã mua lẻ một khóa, lên Member có bị mất quyền khóa cũ không?", a: "Không. Khóa đã mua vẫn giữ nguyên, nếu hạn của khóa ngắn hơn hạn thành viên thì được nâng lên theo hạn thành viên." },
 ];
 
 export default async function MembershipPage() {
-  const [plans, courses] = await Promise.all([listPublishedPlans(), listPublishedCourses()]);
+  const [plans, allCourses] = await Promise.all([listPublishedPlans(), listPublishedCourses()]);
+  // Chỉ hiện khóa thật sự có trong gói (gói "selected" giới hạn danh sách)
+  const included = new Set(plans.flatMap((p) => (p.course_scope === "all" ? allCourses.map((c) => c.id) : p.course_ids)));
+  const courses = allCourses.filter((c) => included.has(c.id));
 
   return (
     <main>
@@ -62,9 +65,9 @@ export default async function MembershipPage() {
           <span className="bg-warning-soft text-warning inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold">
             <Crown className="size-3.5" /> Chương trình thành viên
           </span>
-          <h1 className="mt-4 text-3xl font-bold tracking-tight md:text-5xl">LBT Member — học tất cả, làm quảng cáo nhanh hơn</h1>
+          <h1 className="mt-4 text-3xl font-bold tracking-tight md:text-5xl">LBT Member — học trọn bộ, làm quảng cáo nhanh hơn</h1>
           <p className="text-muted-foreground mx-auto mt-4 max-w-2xl md:text-lg">
-            Một lần đăng ký: mở toàn bộ {courses.length} khóa học hiện có, khóa mới ra mắt và bộ công cụ AI hỗ trợ chạy quảng cáo — đúc kết từ 10 năm làm thật.
+            Một lần đăng ký: mở {courses.length} khóa học Facebook Ads, AI & marketing cùng bộ công cụ AI hỗ trợ chạy quảng cáo — đúc kết từ 10 năm làm thật.
           </p>
         </div>
       </section>

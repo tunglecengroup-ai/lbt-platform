@@ -75,7 +75,7 @@ export default async function MembershipAdminPage() {
 
   return (
     <>
-      <Topbar title="Thành viên Member" subtitle="Gói thành viên: học tất cả khóa + bộ công cụ AI" />
+      <Topbar title="Thành viên Member" subtitle="Gói thành viên: trọn bộ khóa trong gói + bộ công cụ AI" />
       <PageBody>
         <MobileHeading title="Thành viên Member" />
         <div className="mb-6 grid grid-cols-2 gap-4 xl:grid-cols-4">

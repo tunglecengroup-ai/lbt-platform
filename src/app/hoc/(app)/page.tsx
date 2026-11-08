@@ -40,7 +40,7 @@ export default async function MyCoursesPage() {
             <Crown className="text-warning size-6 shrink-0" />
             <div className="flex-1 text-sm">
               <p className="font-semibold">Lên LBT Member</p>
-              <p className="text-muted-foreground">Học tất cả khóa + công cụ AI trong 12 tháng.</p>
+              <p className="text-muted-foreground">Học trọn bộ khóa + công cụ AI trong 12 tháng.</p>
             </div>
             <Button asChild size="sm" variant="outline"><Link href={marketingHref("/thanh-vien")}>Xem gói</Link></Button>
           </Card>
