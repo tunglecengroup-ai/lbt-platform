@@ -21,7 +21,7 @@ function PlanForm({ plan, courses }: { plan?: MembershipPlan; courses: { id: str
     <form action={savePlan} className="grid gap-4 sm:grid-cols-2">
       {plan && <input type="hidden" name="id" value={plan.id} />}
       <Field label="Tên gói"><input name="name" required defaultValue={plan?.name} className={inputClass} /></Field>
-      <Field label="Đường dẫn" hint="lebatung.com/thanh-vien/<đường-dẫn>/mua"><input name="slug" defaultValue={plan?.slug} className={inputClass} /></Field>
+      <Field label="Đường dẫn" hint="…/thanh-vien/<đường-dẫn>/mua"><input name="slug" defaultValue={plan?.slug} className={inputClass} /></Field>
       <Field label="Câu mô tả ngắn" className="sm:col-span-2"><input name="tagline" defaultValue={plan?.tagline ?? ""} className={inputClass} /></Field>
       <Field label="Giá bán (đ)"><input name="price" inputMode="numeric" defaultValue={plan?.price_vnd ?? ""} className={inputClass} /></Field>
       <Field label="Giá gạch (đ)" hint="Để trống nếu không giảm giá"><input name="compare_price" inputMode="numeric" defaultValue={plan?.compare_price_vnd ?? ""} className={inputClass} /></Field>

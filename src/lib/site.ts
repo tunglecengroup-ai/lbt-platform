@@ -13,7 +13,9 @@ export const marketingHost = splitDomains ? new URL(marketingUrl).hostname : "";
 export const learnHost = splitDomains ? new URL(learnUrl).hostname : "";
 
 /** Cookie đăng nhập dùng chung cho mọi tên miền con: ".lebatung.com" */
-export const authCookieDomain = splitDomains ? "." + marketingHost.replace(/^www\./, "") : undefined;
+export const authCookieDomain = splitDomains
+  ? "." + marketingHost.replace(/^www\./, "")
+  : clean(process.env.NEXT_PUBLIC_COOKIE_DOMAIN) || undefined; // chạy 1 tên miền vẫn giữ cookie chung để không đăng xuất học viên
 /** Chỉ gắn domain cookie khi đang chạy đúng trên tên miền đó (bản xem trước *.netlify.app thì không) */
 export function cookieDomainFor(host: string | null | undefined) {
   const h = (host || "").split(":")[0].toLowerCase();

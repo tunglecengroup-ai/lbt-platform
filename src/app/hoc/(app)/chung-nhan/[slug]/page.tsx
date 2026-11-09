@@ -8,7 +8,7 @@ import { CertificateCard } from "@/components/certificate-card";
 import { CertificateActions } from "@/components/certificate-actions";
 import { getStudent, getStudentCourse } from "@/lib/learning";
 import { completionOf, issueCertificate } from "@/lib/certificates";
-import { marketingHref } from "@/lib/site";
+import { marketingHref, siteUrl } from "@/lib/site";
 
 export const metadata = { title: "Chứng nhận hoàn thành — Học viện Lê Bá Tùng" };
 
@@ -42,7 +42,7 @@ export default async function MyCertificatePage({ params }: PageProps<"/hoc/chun
   }
 
   const verifyUrl = marketingHref(`/chung-nhan/${cert.code}`);
-  const absolute = verifyUrl.startsWith("http") ? verifyUrl : `https://lebatung.com${verifyUrl}`;
+  const absolute = verifyUrl.startsWith("http") ? verifyUrl : `${siteUrl}${verifyUrl}`;
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-8">

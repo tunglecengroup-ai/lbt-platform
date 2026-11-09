@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { refreshStudentSession } from "@/lib/supabase/proxy";
-import { learnHost, learnUrl, marketingHost, marketingUrl, splitDomains } from "@/lib/site";
+import { learnHost, learnUrl, marketingHost, marketingUrl, siteUrl, splitDomains } from "@/lib/site";
 
 /** Trang thuộc tên miền học (hoc.lebatung.com) */
 const isLearnPath = (p: string) =>
@@ -19,7 +19,7 @@ export function routeByHost(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   if (LEGACY_HOSTS.has(host)) {
     // Khu học/admin trên tên miền cũ -> thẳng sang hoc.lebatung.com, còn lại -> lebatung.com
-    const target = splitDomains && isLearnPath(pathname) ? learnUrl : marketingUrl || "https://lebatung.com";
+    const target = splitDomains && isLearnPath(pathname) ? learnUrl : marketingUrl || siteUrl;
     return NextResponse.redirect(target + pathname + search, 301);
   }
   if (!splitDomains) return null;
