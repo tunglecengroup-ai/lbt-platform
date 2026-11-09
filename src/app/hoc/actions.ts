@@ -34,7 +34,11 @@ export async function afterSignIn() {
     const user = data.user;
     if (!user?.email) return;
     if (Date.now() - new Date(user.created_at).getTime() > 2 * 86_400_000) return;
-    const { count } = await supabase.from("enrollments").select("id", { count: "exact", head: true });
+    // Khóa tặng khi đăng ký không tính là "đã mua"
+    const { count } = await supabase
+      .from("enrollments")
+      .select("id", { count: "exact", head: true })
+      .or("source.is.null,source.neq.tang-khi-dang-ky");
     if ((count ?? 0) > 0) return;
     const { enqueueAutomation } = await import("@/lib/automation");
     const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle();

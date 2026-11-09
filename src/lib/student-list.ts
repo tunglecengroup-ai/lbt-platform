@@ -118,7 +118,8 @@ export async function loadStudents(f: StudentFilter) {
   });
 
   // Đăng ký tài khoản nhưng chưa có khóa nào (chỉ áp bộ lọc tìm kiếm + ngày tạo)
-  const enrolledIds = new Set(enrollments.map((e) => e.user_id));
+  // Chỉ có khóa tặng khi đăng ký = vẫn là "đăng ký chưa mua"
+  const enrolledIds = new Set(enrollments.filter((e) => e.source !== "tang-khi-dang-ky").map((e) => e.user_id));
   const signups = profiles.filter((p) => {
     if (enrolledIds.has(p.id)) return false;
     if (f.q && !text(p).includes(f.q)) return false;

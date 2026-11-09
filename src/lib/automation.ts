@@ -172,7 +172,12 @@ async function goalReached(goal: string | null, run: Run) {
   if (!goal) return false;
   const db = createAdminSupabase();
   if (goal === "enrolled" && run.user_id) {
-    const { count } = await db.from("enrollments").select("id", { count: "exact", head: true }).eq("user_id", run.user_id).eq("status", "active");
+    const { count } = await db
+      .from("enrollments")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", run.user_id)
+      .eq("status", "active")
+      .or("source.is.null,source.neq.tang-khi-dang-ky"); // khóa tặng khi đăng ký không tính là đã mua
     return (count ?? 0) > 0;
   }
   if (goal === "order_paid" && run.context.order_id) {
