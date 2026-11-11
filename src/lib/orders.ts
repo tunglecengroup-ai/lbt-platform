@@ -19,6 +19,9 @@ export async function createOrder(input: {
   name: string;
   email: string;
   phone: string;
+  /** Nguồn đơn: trang bán + UTM quảng cáo */
+  landingId?: string | null;
+  utm?: Partial<Record<"utm_source" | "utm_medium" | "utm_campaign" | "utm_content" | "utm_term", string>>;
 }) {
   const db = createAdminSupabase();
   for (let i = 0; i < 5; i++) {
@@ -33,6 +36,8 @@ export async function createOrder(input: {
         customer_email: normEmail(input.email),
         customer_phone: input.phone,
         status: "pending",
+        landing_id: input.landingId ?? null,
+        ...(input.utm ?? {}),
       })
       .select("*")
       .single();

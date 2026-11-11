@@ -11,3 +11,10 @@ export async function assertAdmin() {
   const session = (await cookies()).get("lbt_session")?.value;
   if (session !== secret) throw new Error("Không có quyền admin");
 }
+
+/** Đang đăng nhập admin? (không ném lỗi — dùng để cho xem trước trang chưa xuất bản) */
+export async function isAdminSession() {
+  const secret = process.env.APP_SESSION_SECRET;
+  if (!secret) return process.env.NODE_ENV !== "production";
+  return (await cookies()).get("lbt_session")?.value === secret;
+}

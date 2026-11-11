@@ -10,6 +10,7 @@ import {
   KeyRound,
   Crown,
   Plug,
+  LayoutTemplate,
   type LucideIcon,
 } from "lucide-react";
 
@@ -26,6 +27,7 @@ export const navItems: NavItem[] = [
   { href: "/admin/students", label: "Học viên", icon: GraduationCap },
   { href: "/admin/courses", label: "Khóa học", icon: BookOpen },
   { href: "/admin/orders", label: "Đơn hàng", icon: Receipt },
+  { href: "/admin/landing", label: "Trang bán (Landing)", icon: LayoutTemplate },
   { href: "/admin/membership", label: "Thành viên Member", icon: Crown },
   { href: "/admin/codes", label: "Mã kích hoạt", icon: KeyRound },
   { href: "/admin/blog", label: "Blog & trang", icon: Newspaper },
