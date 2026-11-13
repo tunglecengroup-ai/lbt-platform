@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { refreshStudentSession } from "@/lib/supabase/proxy";
+import { refreshStudentSession, stripUserHeaders } from "@/lib/supabase/proxy";
 import { learnHost, learnUrl, marketingHost, marketingUrl, siteUrl, splitDomains } from "@/lib/site";
 
 /** Trang thuộc tên miền học (hoc.lebatung.com) */
@@ -46,6 +46,9 @@ const GONE_PREFIXES = ["/blog/bac-si-nguyen-ngoc", "/blog/founder-do-hai-vuong"]
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  // Không tin header user từ trình duyệt — chỉ proxy được đặt (sau khi xác minh phiên)
+  stripUserHeaders(request);
+  const pass = () => NextResponse.next({ request });
 
   const moved = routeByHost(request);
   if (moved) return moved;
@@ -59,23 +62,23 @@ export async function proxy(request: NextRequest) {
 
   // ----- Khu admin -----
   if (pathname === "/admin" || pathname.startsWith("/admin/")) {
-    if (pathname === "/admin/login") return NextResponse.next();
+    if (pathname === "/admin/login") return pass();
     const secret = process.env.APP_SESSION_SECRET;
     const session = request.cookies.get("lbt_session")?.value;
-    if (!secret || session === secret) return NextResponse.next();
+    if (!secret || session === secret) return pass();
     const loginUrl = new URL("/admin/login", request.url);
     loginUrl.searchParams.set("from", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
   // Webhook ngân hàng không mang cookie -> khỏi làm mới phiên
-  if (pathname.startsWith("/api/webhooks/")) return NextResponse.next();
+  if (pathname.startsWith("/api/webhooks/")) return pass();
 
   const learnArea = (pathname === "/hoc" || pathname.startsWith("/hoc/")) && pathname !== "/hoc/dang-nhap" && pathname !== "/hoc/dang-ky";
 
   // Khách chưa đăng nhập (không có cookie phiên Supabase) -> khỏi gọi Supabase Auth, đỡ 1 lượt chờ mỗi trang
   if (!request.cookies.getAll().some((c) => c.name.startsWith("sb-"))) {
-    if (!learnArea) return NextResponse.next();
+    if (!learnArea) return pass();
     const url = new URL("/hoc/dang-nhap", request.url);
     url.searchParams.set("from", pathname);
     return NextResponse.redirect(url);

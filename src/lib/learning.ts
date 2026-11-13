@@ -2,6 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createServerSupabase } from "@/lib/supabase/server";
+import { getVerifiedUser } from "@/lib/session-user";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import { buildOutline } from "@/lib/courses";
 import { lessonEmbedUrl } from "@/lib/video";
@@ -21,20 +22,21 @@ export type StudentCourse = CourseOutline & {
   progress: number;
 };
 
+/** Học viên đang đăng nhập — id/email lấy từ proxy (đã xác minh), chỉ còn 1 lượt đọc hồ sơ */
+export const getStudentId = cache(async () => {
+  const user = await getVerifiedUser();
+  if (!user) redirect("/hoc/dang-nhap");
+  return user;
+});
+
 export const getStudent = cache(async () => {
+  const user = await getStudentId();
   const supabase = await createServerSupabase();
-  const { data } = await supabase.auth.getUser();
-  if (!data.user) redirect("/hoc/dang-nhap");
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("full_name, email, phone")
-    .eq("id", data.user.id)
-    .maybeSingle();
-  const email = data.user.email ?? "";
+  const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
   return {
-    id: data.user.id,
-    email,
-    name: profile?.full_name || email.split("@")[0],
+    id: user.id,
+    email: user.email,
+    name: profile?.full_name || user.email.split("@")[0],
   };
 });
 
@@ -71,7 +73,7 @@ async function loadCourses(courseIds: string[], userId: string) {
 }
 
 export async function getMyCourses(): Promise<StudentCourse[]> {
-  const student = await getStudent();
+  const student = await getStudentId();
   const supabase = await createServerSupabase();
   const { data: enrollments } = await supabase
     .from("enrollments")
@@ -88,26 +90,23 @@ export async function getMyCourses(): Promise<StudentCourse[]> {
 }
 
 export async function getStudentCourse(slug: string): Promise<StudentCourse | null> {
-  const student = await getStudent();
+  const student = await getStudentId();
   const supabase = await createServerSupabase();
   const { data: course } = await supabase.from("courses").select("id").eq("slug", slug).maybeSingle();
   if (!course) return null;
 
-  const { data: enr } = await supabase
-    .from("enrollments")
-    .select("expires_at")
-    .eq("course_id", course.id)
-    .eq("status", "active")
-    .maybeSingle();
+  // Quyền học + nội dung khóa đọc CÙNG LÚC (trước đây nối đuôi 3 lượt)
+  const [{ data: enr }, [loaded]] = await Promise.all([
+    supabase.from("enrollments").select("expires_at").eq("course_id", course.id).eq("status", "active").maybeSingle(),
+    loadCourses([course.id], student.id),
+  ]);
   const enrolled = !!enr && (!enr.expires_at || new Date(enr.expires_at) > new Date());
-
-  const [loaded] = await loadCourses([course.id], student.id);
   return loaded ? withStats(loaded.outline, loaded.completed, enrolled) : null;
 }
 
 /** Video + ghi chú + tài liệu của 1 bài — chỉ trả về khi được phép xem */
 export async function getLessonContent(lessonId: string) {
-  const student = await getStudent();
+  const student = await getStudentId();
   const supabase = await createServerSupabase();
   const { data: allowed } = await supabase.rpc("can_watch_lesson", {
     p_user_id: student.id,

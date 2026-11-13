@@ -2,11 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Mail, LoaderCircle, GraduationCap, KeyRound, User, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createBrowserSupabase } from "@/lib/supabase/client";
-import { afterSignIn } from "@/app/hoc/actions";
 import { track } from "@/lib/track";
 import { marketingHref } from "@/lib/site";
 
@@ -25,9 +24,10 @@ function normalizePhone(raw: string) {
  * (Email cũng có link đăng nhập, bấm link đi qua /auth/confirm.)
  */
 export function StudentAuthForm({ mode }: { mode: "login" | "register" }) {
-  const router = useRouter();
   const params = useSearchParams();
-  const from = params.get("from") || "/hoc";
+  // Chỉ cho quay về đường dẫn trong web (chặn chuyển hướng ra trang lạ)
+  const rawFrom = params.get("from") || "/hoc";
+  const from = rawFrom.startsWith("/") && !rawFrom.startsWith("//") ? rawFrom : "/hoc";
   const register = mode === "register";
   const [email, setEmail] = useState(params.get("email") ?? "");
   const [fullName, setFullName] = useState("");
@@ -81,10 +81,12 @@ export function StudentAuthForm({ mode }: { mode: "login" | "register" }) {
         .update({ full_name: fullName.trim(), phone: normalizePhone(phone) })
         .eq("id", data.user.id);
     }
-    await afterSignIn().catch(() => {});
     if (register) track("sign_up", { method: "email" });
-    router.replace(from);
-    router.refresh();
+    // Việc phụ (kịch bản chào mừng tài khoản mới) chạy ngầm — không bắt học viên chờ
+    const beacon = () => fetch("/api/hoc/sau-dang-nhap", { method: "POST", keepalive: true }).catch(() => {});
+    if (!navigator.sendBeacon?.("/api/hoc/sau-dang-nhap")) beacon();
+    // Chuyển trang hẳn (tải lại với cookie phiên mới) thay vì router.replace + refresh dễ treo
+    window.location.replace(from);
   }
 
   const otherHref = `${register ? "/hoc/dang-nhap" : "/hoc/dang-ky"}${from !== "/hoc" ? `?from=${encodeURIComponent(from)}` : ""}`;

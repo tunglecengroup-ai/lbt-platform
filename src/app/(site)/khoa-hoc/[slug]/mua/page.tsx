@@ -4,20 +4,28 @@ import { ArrowLeft } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { CourseCover } from "@/components/course-cover";
 import { getPublishedOutline, outlineStats } from "@/lib/courses";
-import { createServerSupabase } from "@/lib/supabase/server";
+import { createAdminSupabase } from "@/lib/supabase/admin";
+import { getVerifiedUser } from "@/lib/session-user";
 import { formatVND } from "@/lib/utils";
 import { CheckoutForm } from "./checkout-form";
 import { TrackEvent } from "@/components/track-event";
 
 export const metadata = { title: "Đăng ký khóa học — Học viện Lê Bá Tùng", robots: { index: false } };
 
+/** Người đang đăng nhập (nếu có) để điền sẵn form — chạy song song với phần đọc khóa/gói */
+async function prefill() {
+  const user = await getVerifiedUser();
+  if (!user) return { email: undefined, name: undefined };
+  const { data } = await createAdminSupabase().from("profiles").select("full_name").eq("id", user.id).maybeSingle();
+  return { email: user.email || undefined, name: data?.full_name || undefined };
+}
+
 export default async function CheckoutPage({ params }: PageProps<"/khoa-hoc/[slug]/mua">) {
   const { slug } = await params;
-  const course = await getPublishedOutline(slug);
+  const [course, me] = await Promise.all([getPublishedOutline(slug), prefill()]);
   if (!course) notFound();
   const { total } = outlineStats(course);
 
-  const { data } = await (await createServerSupabase()).auth.getUser();
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-8 md:px-6 md:py-12">
@@ -31,8 +39,8 @@ export default async function CheckoutPage({ params }: PageProps<"/khoa-hoc/[slu
           <p className="text-muted-foreground mt-1 mb-6 text-sm">Bước 1/2 — Điền thông tin, bước sau quét mã QR để thanh toán.</p>
           <CheckoutForm
             slug={slug}
-            defaultEmail={data.user?.email}
-            defaultName={(data.user?.user_metadata?.full_name as string | undefined) || undefined}
+            defaultEmail={me.email}
+            defaultName={me.name}
           />
         </Card>
         <Card className="h-fit overflow-hidden">

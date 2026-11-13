@@ -4,15 +4,15 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { getMyCourses, getStudent, resumeLesson } from "@/lib/learning";
+import { getMyCourses, getStudent, getStudentId, resumeLesson } from "@/lib/learning";
 import { CourseCover } from "@/components/course-cover";
 import { getActiveMembership } from "@/lib/membership";
 import { marketingHref } from "@/lib/site";
 import { formatDate } from "@/lib/utils";
 
 export default async function MyCoursesPage() {
-  const [currentStudent, myCourses] = await Promise.all([getStudent(), getMyCourses()]);
-  const membership = await getActiveMembership(currentStudent.id);
+  const { id } = await getStudentId();
+  const [currentStudent, myCourses, membership] = await Promise.all([getStudent(), getMyCourses(), getActiveMembership(id)]);
   const firstName = currentStudent.name.split(" ").pop();
 
   return (

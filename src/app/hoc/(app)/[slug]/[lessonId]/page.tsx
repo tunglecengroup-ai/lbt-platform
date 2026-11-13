@@ -21,7 +21,8 @@ import { marketingHref } from "@/lib/site";
 
 export default async function LessonPage({ params }: PageProps<"/hoc/[slug]/[lessonId]">) {
   const { slug, lessonId } = await params;
-  const course = await getStudentCourse(slug);
+  // Khóa + nội dung bài đọc cùng lúc (quyền xem bài vẫn kiểm tra riêng bằng can_watch_lesson)
+  const [course, content] = await Promise.all([getStudentCourse(slug), getLessonContent(lessonId)]);
   if (!course) notFound();
 
   const flat = flatLessons(course);
@@ -31,7 +32,6 @@ export default async function LessonPage({ params }: PageProps<"/hoc/[slug]/[les
   const prev = flat[index - 1]?.lesson;
   const next = flat[index + 1]?.lesson;
 
-  const content = await getLessonContent(lesson.id);
   const canOpen = (l: { is_free_preview: boolean }) => course.enrolled || l.is_free_preview;
 
   return (

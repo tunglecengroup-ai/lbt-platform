@@ -55,20 +55,22 @@ export function buildOutline(
 export async function getPublishedOutline(slug: string): Promise<CourseOutline | null> {
   if (!isSupabaseConfigured) return null;
   const supabase = createPublicSupabase();
-  const { data: course } = await supabase
-    .from("courses")
-    .select("*")
-    .eq("slug", slug)
-    .eq("is_published", true)
-    .maybeSingle();
-  if (!course) return null;
-
-  const [{ data: chapters }, { data: lessons }] = await Promise.all([
-    supabase.from("chapters").select("id, title, position").eq("course_id", course.id),
-    supabase.from("lessons").select(LESSON_PUBLIC_COLUMNS).eq("course_id", course.id),
+  // 3 truy vấn chạy CÙNG LÚC (lọc chương/bài theo slug khóa qua join) — trước đây phải chờ đọc khóa xong mới đọc chương/bài
+  const [{ data: course }, { data: chapters }, { data: lessons }] = await Promise.all([
+    supabase.from("courses").select("*").eq("slug", slug).eq("is_published", true).maybeSingle(),
+    supabase.from("chapters").select("id, title, position, courses!inner(slug)").eq("courses.slug", slug),
+    supabase.from("lessons").select(`${LESSON_PUBLIC_COLUMNS}, courses!inner(slug)`).eq("courses.slug", slug),
   ]);
-
-  return buildOutline(course as CourseRow, chapters ?? [], (lessons ?? []) as LessonRow[]);
+  if (!course) return null;
+  return buildOutline(
+    course as CourseRow,
+    (chapters ?? []).map(({ id, title, position }) => ({ id, title, position })),
+    ((lessons ?? []) as unknown as (LessonRow & { courses?: unknown })[]).map((l) => {
+      const row = { ...l };
+      delete row.courses;
+      return row as LessonRow;
+    }),
+  );
 }
 
 export function outlineStats(outline: CourseOutline) {
