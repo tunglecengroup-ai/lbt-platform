@@ -162,6 +162,10 @@
 .post-content li + li { margin-top: 0.35em; }
 .post-content li > p { margin: 0; }
 .post-content img { max-width: 100%; height: auto; border-radius: var(--radius); margin-inline: auto; }
+.post-content figure { margin-block: 1.5em; }
+.post-content figure img { border: 1px solid hsl(var(--border)); }
+.post-content figcaption { margin-top: 0.5em; text-align: center; font-size: 0.875rem; color: hsl(var(--muted-foreground)); }
+.post-content .tldr { border-left: 4px solid hsl(var(--primary)); background: hsl(var(--primary) / 0.08); border-radius: var(--radius); padding: 0.9em 1.1em; }
 .post-content blockquote { border-left: 3px solid hsl(var(--primary)); padding-left: 1em; color: hsl(var(--muted-foreground)); }
 .post-content table { width: 100%; border-collapse: collapse; font-size: 0.95rem; display: block; overflow-x: auto; }
 .post-content th, .post-content td { border: 1px solid hsl(var(--border)); padding: 0.5em 0.75em; text-align: left; }
