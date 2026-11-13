@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
+import { createBrowserSupabase } from "@/lib/supabase/client";
 import { LoaderCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { checkout, type CheckoutState } from "./actions";
@@ -8,8 +9,23 @@ import { checkout, type CheckoutState } from "./actions";
 const inputClass =
   "bg-background focus:border-primary focus:ring-primary/20 h-11 w-full rounded-md border px-3 text-sm outline-none focus:ring-2";
 
-export function CheckoutForm({ slug, kind = "course", defaultEmail, defaultName }: { slug: string; kind?: "course" | "plan"; defaultEmail?: string; defaultName?: string }) {
+export function CheckoutForm({ slug, kind = "course" }: { slug: string; kind?: "course" | "plan" }) {
   const [state, action, pending] = useActionState<CheckoutState, FormData>(checkout, {});
+  const nameRef = useRef<HTMLInputElement>(null);
+  const emailRef = useRef<HTMLInputElement>(null);
+
+  // Trang mua được lưu sẵn (nhanh) -> điền sẵn tên/email của người đã đăng nhập ngay tại trình duyệt
+  useEffect(() => {
+    const supabase = createBrowserSupabase();
+    supabase.auth.getSession().then(async ({ data }) => {
+      const user = data.session?.user;
+      if (!user) return;
+      if (emailRef.current && !emailRef.current.value) emailRef.current.value = user.email ?? "";
+      const { data: p } = await supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
+      const name = p?.full_name || (user.user_metadata?.full_name as string | undefined);
+      if (name && nameRef.current && !nameRef.current.value) nameRef.current.value = name;
+    }).catch(() => {});
+  }, []);
 
   return (
     <form action={action} className="space-y-4">
@@ -17,11 +33,11 @@ export function CheckoutForm({ slug, kind = "course", defaultEmail, defaultName 
       <input type="hidden" name="kind" value={kind} />
       <div>
         <label htmlFor="name" className="mb-1.5 block text-sm font-medium">Họ và tên</label>
-        <input id="name" name="name" required autoComplete="name" defaultValue={defaultName} className={inputClass} />
+        <input ref={nameRef} id="name" name="name" required autoComplete="name" className={inputClass} />
       </div>
       <div>
         <label htmlFor="email" className="mb-1.5 block text-sm font-medium">Email</label>
-        <input id="email" name="email" type="email" required autoComplete="email" defaultValue={defaultEmail} placeholder="ban@email.com" className={inputClass} />
+        <input ref={emailRef} id="email" name="email" type="email" required autoComplete="email" placeholder="ban@email.com" className={inputClass} />
         <p className="text-muted-foreground mt-1 text-xs">Dùng email này để đăng nhập vào học sau khi thanh toán.</p>
       </div>
       <div>

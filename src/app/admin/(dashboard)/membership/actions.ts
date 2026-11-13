@@ -15,7 +15,7 @@ const int = (f: FormData, k: string) => {
 function refresh() {
   revalidatePath("/admin/membership");
   revalidatePath("/admin/students", "layout");
-  revalidatePath("/thanh-vien");
+  revalidatePath("/thanh-vien", "layout"); // gồm cả trang mua gói (đang lưu sẵn)
 }
 
 export async function savePlan(form: FormData) {

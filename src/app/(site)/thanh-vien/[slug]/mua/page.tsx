@@ -3,25 +3,21 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Check, Crown } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { getPlanBySlug } from "@/lib/membership";
-import { createAdminSupabase } from "@/lib/supabase/admin";
-import { getVerifiedUser } from "@/lib/session-user";
 import { formatVND } from "@/lib/utils";
 import { CheckoutForm } from "../../../khoa-hoc/[slug]/mua/checkout-form";
 import { TrackEvent } from "@/components/track-event";
 
 export const metadata = { title: "Đăng ký thành viên — Học viện Lê Bá Tùng", robots: { index: false } };
 
-/** Người đang đăng nhập (nếu có) để điền sẵn form — chạy song song với phần đọc khóa/gói */
-async function prefill() {
-  const user = await getVerifiedUser();
-  if (!user) return { email: undefined, name: undefined };
-  const { data } = await createAdminSupabase().from("profiles").select("full_name").eq("id", user.id).maybeSingle();
-  return { email: user.email || undefined, name: data?.full_name || undefined };
+// Lưu sẵn trên CDN (khách từ quảng cáo bấm "Đăng ký" là vào ngay); tên/email người đã đăng nhập điền ở trình duyệt
+export const revalidate = 300;
+export async function generateStaticParams() {
+  return [];
 }
 
 export default async function PlanCheckoutPage({ params }: PageProps<"/thanh-vien/[slug]/mua">) {
   const { slug } = await params;
-  const [plan, me] = await Promise.all([getPlanBySlug(slug), prefill()]);
+  const plan = await getPlanBySlug(slug);
   if (!plan) notFound();
 
   return (
@@ -37,8 +33,6 @@ export default async function PlanCheckoutPage({ params }: PageProps<"/thanh-vie
           <CheckoutForm
             slug={plan.slug}
             kind="plan"
-            defaultEmail={me.email}
-            defaultName={me.name}
           />
         </Card>
         <Card className="h-fit p-5">
