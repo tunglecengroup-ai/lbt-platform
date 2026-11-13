@@ -71,10 +71,20 @@ export async function proxy(request: NextRequest) {
   // Webhook ngân hàng không mang cookie -> khỏi làm mới phiên
   if (pathname.startsWith("/api/webhooks/")) return NextResponse.next();
 
+  const learnArea = (pathname === "/hoc" || pathname.startsWith("/hoc/")) && pathname !== "/hoc/dang-nhap" && pathname !== "/hoc/dang-ky";
+
+  // Khách chưa đăng nhập (không có cookie phiên Supabase) -> khỏi gọi Supabase Auth, đỡ 1 lượt chờ mỗi trang
+  if (!request.cookies.getAll().some((c) => c.name.startsWith("sb-"))) {
+    if (!learnArea) return NextResponse.next();
+    const url = new URL("/hoc/dang-nhap", request.url);
+    url.searchParams.set("from", pathname);
+    return NextResponse.redirect(url);
+  }
+
   const { response, user } = await refreshStudentSession(request);
 
   // ----- Khu học viên -----
-  if ((pathname === "/hoc" || pathname.startsWith("/hoc/")) && pathname !== "/hoc/dang-nhap" && pathname !== "/hoc/dang-ky") {
+  if (learnArea) {
     if (!user) {
       const url = new URL("/hoc/dang-nhap", request.url);
       url.searchParams.set("from", pathname);

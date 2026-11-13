@@ -9,6 +9,10 @@ import { listPublishedCourses } from "@/lib/courses";
 import { formatVND } from "@/lib/utils";
 import { siteUrl } from "@/lib/site";
 
+// Lưu sẵn trên CDN cho nhanh; tự làm mới tối đa 5 phút/lần, sửa trong Admin thì làm mới ngay.
+export const revalidate = 300;
+
+
 export const metadata = {
   title: "LBT Member — Trọn bộ khóa Facebook Ads + công cụ AI quảng cáo | Học viện Lê Bá Tùng",
   description:

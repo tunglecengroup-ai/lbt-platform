@@ -9,6 +9,13 @@ import { JsonLd } from "@/components/json-ld";
 import { breadcrumbLd, orgId, personId } from "@/lib/schema";
 import { AUTHOR, siteUrl } from "@/lib/site";
 
+// Lưu sẵn trên CDN cho nhanh; tự làm mới tối đa 5 phút/lần, sửa trong Admin thì làm mới ngay.
+export const revalidate = 300;
+export async function generateStaticParams() {
+  return [];
+}
+
+
 export async function generateMetadata({ params }: PageProps<"/blog/[slug]">) {
   const { slug } = await params;
   const post = await getPublishedPost("post", slug);

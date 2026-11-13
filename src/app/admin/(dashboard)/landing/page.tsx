@@ -66,7 +66,7 @@ export default async function LandingAdminPage({ searchParams }: PageProps<"/adm
                       <div className="text-muted-foreground mt-0.5 flex flex-wrap items-center gap-2 text-xs">
                         {l.is_published ? <Badge tone="success"><Dot /> Đang chạy</Badge> : <Badge tone="neutral"><Dot /> Nháp</Badge>}
                         <span>{l.plan_id ? `Gói: ${planName.get(l.plan_id) ?? "?"}` : courseTitle.get(l.course_id ?? "") ?? "Chưa gắn khóa"}</span>
-                        <a href={`/l/${l.slug}`} target="_blank" className="text-primary inline-flex items-center gap-0.5">/l/{l.slug} <ExternalLink className="size-3" /></a>
+                        <a href={l.is_published ? `/l/${l.slug}` : `/l/xem-truoc/${l.slug}`} target="_blank" className="text-primary inline-flex items-center gap-0.5">/l/{l.slug} <ExternalLink className="size-3" /></a>
                       </div>
                     </td>
                     <FunnelCells s={stats.byLanding.get(l.id) ?? emptyStats()} />

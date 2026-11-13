@@ -1,6 +1,10 @@
 import { PostCard } from "@/components/post-card";
 import { listPublishedPosts } from "@/lib/content";
 
+// Lưu sẵn trên CDN cho nhanh; tự làm mới tối đa 5 phút/lần, sửa trong Admin thì làm mới ngay.
+export const revalidate = 300;
+
+
 export const metadata = {
   title: "Blog — Học viện Lê Bá Tùng",
   description: "Kiến thức quảng cáo Facebook, marketing online và tư duy kinh doanh từ Lê Bá Tùng.",

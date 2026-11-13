@@ -1,17 +1,7 @@
 import Link from "next/link";
-import { GraduationCap } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { isSupabaseConfigured } from "@/lib/supabase/env";
-import { createServerSupabase } from "@/lib/supabase/server";
+import { HeaderAuthButtons } from "@/components/auth-aware";
 import { learnHref } from "@/lib/site";
-
-async function isLoggedIn() {
-  if (!isSupabaseConfigured) return false;
-  const supabase = await createServerSupabase();
-  const { data } = await supabase.auth.getUser();
-  return !!data.user;
-}
 
 const links = [
   { href: "/#khoa-hoc", label: "Khóa học" },
@@ -22,8 +12,7 @@ const links = [
   { href: learnHref("/hoc/kich-hoat"), label: "Mã kích hoạt", className: "hidden lg:block" },
 ];
 
-export async function SiteHeader() {
-  const loggedIn = await isLoggedIn();
+export function SiteHeader() {
   return (
     <header className="bg-card/80 sticky top-0 z-30 border-b backdrop-blur">
       <div className="mx-auto flex max-w-6xl items-center gap-2 px-4 py-3 md:gap-4 md:px-6">
@@ -46,17 +35,7 @@ export async function SiteHeader() {
         </nav>
         <div className="ml-auto flex shrink-0 items-center gap-2">
           <ThemeToggle />
-          {!loggedIn && (
-            <Button asChild size="sm" variant="outline" className="hidden sm:inline-flex">
-              <Link href={learnHref("/hoc/dang-ky")}>Đăng ký</Link>
-            </Button>
-          )}
-          <Button asChild size="sm">
-            <Link href={learnHref("/hoc")}>
-              <GraduationCap className="size-4" />
-              {loggedIn ? "Khóa của tôi" : "Vào học"}
-            </Link>
-          </Button>
+          <HeaderAuthButtons />
         </div>
       </div>
     </header>

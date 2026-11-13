@@ -130,7 +130,8 @@ export default async function LandingEditorPage({ params, searchParams }: PagePr
           <Link href="/admin/landing" className="text-muted-foreground hover:text-foreground inline-flex items-center gap-1 text-sm"><ArrowLeft className="size-4" /> Tất cả trang</Link>
           {landing.is_published ? <Badge tone="success"><Dot /> Đang chạy</Badge> : <Badge tone="neutral"><Dot /> Nháp</Badge>}
           <div className="ml-auto flex flex-wrap gap-2">
-            <Button asChild variant="outline" size="sm"><a href={`/l/${landing.slug}`} target="_blank">{landing.is_published ? "Xem trang" : "Xem trước"} <ExternalLink className="size-3.5" /></a></Button>
+            <Button asChild variant="outline" size="sm"><a href={`/l/xem-truoc/${landing.slug}`} target="_blank">Xem trước <ExternalLink className="size-3.5" /></a></Button>
+            {landing.is_published && <Button asChild variant="outline" size="sm"><a href={`/l/${landing.slug}`} target="_blank">Xem trang thật <ExternalLink className="size-3.5" /></a></Button>}
             <form action={togglePublish}><input type="hidden" name="id" value={id} />
               <Button size="sm" variant={landing.is_published ? "outline" : "primary"}>{landing.is_published ? "Tắt trang" : "Xuất bản"}</Button>
             </form>

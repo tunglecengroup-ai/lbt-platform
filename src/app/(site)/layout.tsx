@@ -1,5 +1,5 @@
-// Danh sách khóa + trạng thái đăng nhập đọc mới mỗi lần, admin sửa là thấy ngay
-export const dynamic = "force-dynamic";
+// Trang công khai được lưu sẵn (ISR) — phần riêng từng người (đã đăng nhập, đã mua) đọc ở trình duyệt.
+// Trang cần cookie (trang mua, đơn hàng) tự động chạy động.
 
 import { SiteHeader, SiteFooter } from "@/components/site-header";
 import { JsonLd } from "@/components/json-ld";

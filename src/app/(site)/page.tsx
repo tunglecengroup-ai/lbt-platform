@@ -12,6 +12,10 @@ import { AUTHOR, SOCIALS, TRIAL_VIDEO, TRIAL_VIDEO_META, learnHref, marketingHre
 import { JsonLd } from "@/components/json-ld";
 import { faqLd, orgId, personId } from "@/lib/schema";
 
+// Lưu sẵn trên CDN cho nhanh; tự làm mới tối đa 5 phút/lần, sửa trong Admin thì làm mới ngay.
+export const revalidate = 300;
+
+
 const FAQS = [
   { q: "Người mới chưa biết gì có học được quảng cáo Facebook không?", a: "Được. Khóa Facebook Ads Từ Cơ Bản Đến Nâng Cao bắt đầu từ cách tạo tài khoản, fanpage, đọc chỉ số rồi mới tới tối ưu và scale — mỗi bài làm theo được ngay." },
   { q: "Học online như thế nào, có hết hạn không?", a: "Học trên điện thoại hoặc máy tính tại hoc.lebatung.com, đăng nhập bằng email nhận mã (không cần mật khẩu). Mỗi khóa có thời hạn học tối đa 12 tháng kể từ ngày kích hoạt." },

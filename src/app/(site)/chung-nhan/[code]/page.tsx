@@ -7,6 +7,13 @@ import { CertificateActions } from "@/components/certificate-actions";
 import { getCertificateByCode } from "@/lib/certificates";
 import { siteUrl } from "@/lib/site";
 
+// Lưu sẵn trên CDN cho nhanh; tự làm mới tối đa 5 phút/lần, sửa trong Admin thì làm mới ngay.
+export const revalidate = 300;
+export async function generateStaticParams() {
+  return [];
+}
+
+
 // Trang xác minh công khai — không đưa lên Google (có tên học viên)
 export async function generateMetadata({ params }: PageProps<"/chung-nhan/[code]">) {
   const { code } = await params;

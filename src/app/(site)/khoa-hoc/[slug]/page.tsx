@@ -1,22 +1,27 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BookOpen, Check, Clock, PlayCircle, Lock } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CourseCover } from "@/components/course-cover";
 import { ReviewCard, Stars } from "@/components/review-card";
 import { getPublishedOutline, outlineStats } from "@/lib/courses";
 import { listCourseReviews } from "@/lib/content";
 import { createAdminSupabase } from "@/lib/supabase/admin";
-import { createServerSupabase } from "@/lib/supabase/server";
+import { CourseBuyButton } from "@/components/auth-aware";
 import { lessonEmbedUrl } from "@/lib/video";
 import { formatDuration, formatVND } from "@/lib/utils";
-import { learnHref, siteUrl } from "@/lib/site";
+import { siteUrl } from "@/lib/site";
 import { JsonLd } from "@/components/json-ld";
 import { TrackEvent } from "@/components/track-event";
 import { breadcrumbLd, orgId, personId } from "@/lib/schema";
 import { accessDaysOf } from "@/lib/orders";
+
+// Lưu sẵn trên CDN cho nhanh; tự làm mới tối đa 5 phút/lần, sửa trong Admin thì làm mới ngay.
+export const revalidate = 300;
+export async function generateStaticParams() {
+  return [];
+}
+
 
 export async function generateMetadata({ params }: PageProps<"/khoa-hoc/[slug]">) {
   const { slug } = await params;
@@ -36,34 +41,16 @@ export default async function CourseDetailPage({ params }: PageProps<"/khoa-hoc/
   const course = await getPublishedOutline(slug);
   if (!course) notFound();
   const { lessons, total, totalSec } = outlineStats(course);
-  const reviews = await listCourseReviews(course.id);
-  const avgRating = reviews.length ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0;
-
-  // Video giới thiệu = bài học thử đầu tiên
+  // Video giới thiệu = bài học thử đầu tiên — đọc song song với đánh giá (đỡ 1 lượt chờ database)
   const preview = lessons.find((l) => l.is_free_preview);
-  let previewUrl: string | null = null;
-  if (preview) {
-    const { data } = await createAdminSupabase()
-      .from("lessons")
-      .select("bunny_video_id, youtube_id")
-      .eq("id", preview.id)
-      .single();
-    if (data) previewUrl = lessonEmbedUrl(data);
-  }
-
-  // Đã mua chưa?
-  const supabase = await createServerSupabase();
-  const { data: auth } = await supabase.auth.getUser();
-  let enrolled = false;
-  if (auth.user) {
-    const { data } = await supabase
-      .from("enrollments")
-      .select("id")
-      .eq("course_id", course.id)
-      .eq("status", "active")
-      .maybeSingle();
-    enrolled = !!data;
-  }
+  const [reviews, previewRow] = await Promise.all([
+    listCourseReviews(course.id),
+    preview
+      ? createAdminSupabase().from("lessons").select("bunny_video_id, youtube_id").eq("id", preview.id).single().then((r) => r.data)
+      : null,
+  ]);
+  const avgRating = reviews.length ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0;
+  const previewUrl = previewRow ? lessonEmbedUrl(previewRow) : null;
 
   const discount =
     course.compare_price_vnd && course.compare_price_vnd > course.price_vnd
@@ -201,15 +188,7 @@ export default async function CourseDetailPage({ params }: PageProps<"/khoa-hoc/
               </p>
             )}
             <p className="mt-1 text-3xl font-bold">{course.price_vnd ? formatVND(course.price_vnd) : "Miễn phí"}</p>
-            {enrolled ? (
-              <Button asChild className="mt-5 h-12 w-full text-base">
-                <Link href={learnHref(`/hoc/${course.slug}`)}>Vào học ngay</Link>
-              </Button>
-            ) : (
-              <Button asChild className="mt-5 h-12 w-full text-base">
-                <Link href={`/khoa-hoc/${course.slug}/mua`}>Đăng ký học</Link>
-              </Button>
-            )}
+            <CourseBuyButton courseId={course.id} slug={course.slug} />
             <ul className="text-muted-foreground mt-5 space-y-2 text-sm">
               <li className="flex gap-2"><Check className="text-success size-4" /> {total} bài giảng video</li>
               <li className="flex gap-2"><Check className="text-success size-4" /> Thanh toán QR, mở khóa tự động</li>

@@ -28,6 +28,8 @@ export const PLAN_COLUMNS =
   "id, slug, name, tagline, description, price_vnd, compare_price_vnd, duration_days, perks, course_scope, course_ids, tools_access, ai_daily_quota, gr_campaign_id, is_published, is_featured, position";
 
 export async function listPublishedPlans() {
+  // Lúc build (dựng sẵn trang /thanh-vien) mà chưa có khóa service -> trả rỗng, trang tự làm mới sau
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY || !process.env.NEXT_PUBLIC_SUPABASE_URL) return [];
   const { data } = await createAdminSupabase()
     .from("membership_plans")
     .select(PLAN_COLUMNS)
