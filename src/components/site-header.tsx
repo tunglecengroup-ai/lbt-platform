@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { HeaderAuthButtons } from "@/components/auth-aware";
-import { learnHref } from "@/lib/site";
+import { SOCIALS, learnHref, socialName } from "@/lib/site";
 
 const links = [
   { href: "/#khoa-hoc", label: "Khóa học" },
@@ -53,7 +53,14 @@ export function SiteFooter() {
         <div className="text-muted-foreground space-y-1.5">
           <p className="text-foreground font-semibold">Liên hệ</p>
           <p>Hotline/Zalo: <a href="tel:0869126363" className="hover:text-foreground">0869 126 363</a></p>
-          <p><a href="https://www.facebook.com/lebatung.vn1" target="_blank" rel="noopener" className="hover:text-foreground">Facebook</a> · <a href="https://www.youtube.com/@lebatungofficial" target="_blank" rel="noopener" className="hover:text-foreground">YouTube</a> · <a href="https://www.tiktok.com/@lebatung.com" target="_blank" rel="noopener" className="hover:text-foreground">TikTok</a></p>
+          <p className="flex flex-wrap gap-x-2">
+            {SOCIALS.map((u, i) => (
+              <span key={u}>
+                {i > 0 && "· "}
+                <a href={u} target="_blank" rel="noopener" className="hover:text-foreground">{socialName(u)}</a>
+              </span>
+            ))}
+          </p>
         </div>
         <div className="text-muted-foreground space-y-1.5">
           <p className="text-foreground font-semibold">Học viên</p>

@@ -54,7 +54,12 @@ export const SOCIALS = [
   "https://www.facebook.com/lebatung.vn1",
   "https://www.youtube.com/@lebatungofficial",
   "https://www.tiktok.com/@lebatung.com",
+  "https://www.instagram.com/bosstungdi/",
+  "https://www.threads.com/@bosstungdi",
 ];
+/** Tên hiển thị của từng kênh trong SOCIALS */
+export const socialName = (u: string) =>
+  u.includes("facebook") ? "Facebook" : u.includes("youtube") ? "YouTube" : u.includes("tiktok") ? "TikTok" : u.includes("instagram") ? "Instagram" : u.includes("threads") ? "Threads" : u.includes("linkedin") ? "LinkedIn" : u;
 export const BRAND = {
   name: "Học viện Lê Bá Tùng",
   description: "Đào tạo quảng cáo Facebook, marketing online và ứng dụng AI thực chiến cho chủ shop, người kinh doanh online tại Việt Nam.",

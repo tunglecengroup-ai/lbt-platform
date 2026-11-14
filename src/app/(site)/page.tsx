@@ -8,7 +8,7 @@ import { PostCard } from "@/components/post-card";
 import { listPublishedCourses } from "@/lib/courses";
 import { listFeaturedReviews, listPublishedPosts } from "@/lib/content";
 import { formatVND } from "@/lib/utils";
-import { AUTHOR, SOCIALS, TRIAL_VIDEO, TRIAL_VIDEO_META, learnHref, marketingHref, youtubeIdFrom } from "@/lib/site";
+import { AUTHOR, SOCIALS, socialName, TRIAL_VIDEO, TRIAL_VIDEO_META, learnHref, marketingHref, youtubeIdFrom } from "@/lib/site";
 import { JsonLd } from "@/components/json-ld";
 import { faqLd, orgId, personId } from "@/lib/schema";
 
@@ -202,7 +202,7 @@ export default async function HomePage() {
               <Link href={AUTHOR.aboutPath} className="text-primary font-medium hover:underline">Câu chuyện của Lê Bá Tùng →</Link>
               {SOCIALS.map((u) => (
                 <a key={u} href={u} target="_blank" rel="noopener" className="text-muted-foreground hover:text-foreground">
-                  {u.includes("facebook") ? "Facebook" : u.includes("youtube") ? "YouTube" : "TikTok"}
+                  {socialName(u)}
                 </a>
               ))}
             </p>
