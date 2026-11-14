@@ -1,12 +1,9 @@
 import Link from "next/link";
 import Image from "next/image";
 import {
-  Award, BookOpen, Clock, Lock, PlayCircle, Quote, ShieldCheck, Smartphone, Sparkles, Users, Zap, CalendarCheck,
+  Award, Lock, PlayCircle, Quote, ShieldCheck, Smartphone, Sparkles, Users, Zap, CalendarCheck,
 } from "lucide-react";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CourseCover } from "@/components/course-cover";
-import { listPublishedCourses } from "@/lib/courses";
 import { listFeaturedReviews } from "@/lib/content";
 import { formatDuration, formatVND } from "@/lib/utils";
 import { AUTHOR, BRAND, SOCIALS, socialName, learnHref, marketingHref } from "@/lib/site";
@@ -15,15 +12,18 @@ import { HomeAuthPanel } from "@/components/home-auth-panel";
 import { listTrialCourses } from "@/lib/trial-courses";
 import { faqLd } from "@/lib/schema";
 
-// Trang LADI học thử (không menu, chỉ 1 việc: đăng ký học thử). Lưu sẵn trên CDN; tự làm mới tối đa 5 phút/lần, sửa trong Admin thì làm mới ngay.
+// Trang LADI học thử khóa Facebook Ads Chuyên Sâu (chạy quảng cáo; không menu, chỉ 1 việc: đăng ký học thử). Lưu sẵn trên CDN; tự làm mới tối đa 5 phút/lần, sửa trong Admin thì làm mới ngay.
 export const revalidate = 300;
+
+/** Khóa của trang ladi này (chỉ khóa Facebook, chưa làm khóa AI) */
+const LADI_COURSE = "facebook-ads-chuyen-sau-tu-a-z";
 
 /** Số liệu kênh YouTube @lebatungofficial (YouTube Data API, 15/11/2026) */
 const CHANNEL = { subs: "141.000+", videos: "2.000+", views: "6,9 triệu" };
 
 const FAQS = [
-  { q: "Tôi muốn học thử có được không?", a: "Được. Điền họ tên, số điện thoại, email ở đầu trang là vào học ngay các bài học thử của khóa Facebook Ads Chuyên Sâu và khóa AI. Bài có nhãn “Học thử” xem miễn phí, các bài còn lại mở khi đăng ký khóa." },
-  { q: "Người mới chưa biết gì có học được quảng cáo Facebook không?", a: "Được. Tài khoản mới còn được tặng khóa Facebook Ads Từ Cơ Bản Đến Nâng Cao để học từ đầu: tạo tài khoản, fanpage, đọc chỉ số rồi mới tới tối ưu và mở rộng." },
+  { q: "Tôi muốn học thử có được không?", a: "Được. Điền họ tên, số điện thoại, email ở đầu trang là vào học ngay các bài học thử của khóa Facebook Ads Chuyên Sâu Từ A-Z. Bài có nhãn “Học thử” xem miễn phí, các bài còn lại mở khi đăng ký khóa." },
+  { q: "Người mới chưa biết gì có học được quảng cáo Facebook không?", a: "Được. Chương 0 của khóa đi từ đầu: chọn sản phẩm, tạo fanpage, tạo tài khoản quảng cáo doanh nghiệp, cài đặt ban đầu, rồi mới tới lên chiến dịch, tối ưu và vít ngân sách. Anh/chị học thử các bài này trước để xem có hợp không." },
   { q: "Học online như thế nào, có hết hạn không?", a: "Học trên điện thoại hoặc máy tính tại hoc.lebatung.com. Lần đầu đăng nhập bằng mã gửi về email, sau đó đặt mật khẩu. Mỗi khóa học được tối đa 12 tháng kể từ ngày kích hoạt." },
   { q: "Thanh toán xong bao lâu thì vào học được?", a: "Chuyển khoản qua mã QR đúng nội dung, hệ thống tự mở khóa trong vài giây và gửi email hướng dẫn vào học." },
   { q: "Lê Bá Tùng là ai?", a: "Lê Bá Tùng là chuyên gia quảng cáo Facebook và marketing online với 10 năm thực chiến cho mô hình bán hàng online, COD tại Việt Nam, người sáng lập Học viện Lê Bá Tùng và kênh YouTube @lebatungofficial." },
@@ -40,8 +40,8 @@ const BENEFITS = [
 ];
 
 export const metadata = {
-  title: "Học thử miễn phí — Khóa Facebook Ads & AI thực chiến | Lê Bá Tùng",
-  description: "Học quảng cáo Facebook và ứng dụng AI thực chiến cùng Lê Bá Tùng — 10 năm chạy quảng cáo thật. Đăng ký miễn phí để học thử các bài trong khóa.",
+  title: "Học thử miễn phí khóa Facebook Ads Chuyên Sâu Từ A-Z | Lê Bá Tùng",
+  description: "Học thử miễn phí các bài trong khóa Facebook Ads Chuyên Sâu Từ A-Z của Lê Bá Tùng, 10 năm chạy quảng cáo thật. Đăng ký tài khoản là vào học ngay.",
   alternates: { canonical: "/hoc-thu" },
   openGraph: { images: [{ url: "https://i.ytimg.com/vi/u3PZ56cEFFE/maxresdefault.jpg", width: 1280, height: 720 }] },
 };
@@ -65,7 +65,8 @@ const HERO_CHIPS: [typeof PlayCircle, string][] = [
 ];
 
 export default async function TrialLandingPage() {
-  const [courses, trials, reviews] = await Promise.all([listPublishedCourses(), listTrialCourses(), listFeaturedReviews()]);
+  const [allTrials, reviews] = await Promise.all([listTrialCourses(), listFeaturedReviews()]);
+  const trials = allTrials.filter((t) => t.slug === LADI_COURSE);
   const firstTrial = trials[0];
   const trialFrom = firstTrial ? `/hoc/${firstTrial.slug}${firstTrial.firstFreeId ? `/${firstTrial.firstFreeId}` : ""}` : "/hoc";
   const trialVideos = trials.reduce((n, t) => n + t.total, 0);
@@ -91,10 +92,10 @@ export default async function TrialLandingPage() {
         <div className="relative mx-auto grid max-w-6xl gap-10 px-4 py-10 md:px-6 lg:grid-cols-[1.15fr_1fr] lg:py-16">
           <div className="text-center lg:text-left">
             <span className="inline-flex items-center gap-2 rounded-full border border-[#f5c451]/50 bg-white/5 px-4 py-1.5 text-sm font-semibold">
-              <PlayCircle className={`size-4 ${GOLD}`} /> {trialVideos > 0 ? `${trialVideos}+ video bài học thật` : "Học thử miễn phí"} · Facebook Ads & AI
+              <PlayCircle className={`size-4 ${GOLD}`} /> {firstTrial ? `${trialVideos} video bài giảng · ${firstTrial.free.length} bài học thử miễn phí` : "Học thử miễn phí"}
             </span>
             <h1 className={`mt-5 text-4xl leading-tight font-black tracking-tight uppercase md:text-5xl ${goldTitle}`}>
-              Học quảng cáo Facebook &amp; AI thực chiến
+              Học quảng cáo Facebook thực chiến từ A-Z
             </h1>
             <p className="mx-auto mt-4 max-w-xl text-base text-white/80 md:text-lg lg:mx-0">
               Quy trình 10 năm chạy quảng cáo thật, chia thành từng bài làm theo được. Học thử miễn phí trước, thấy hợp rồi mới đăng ký khóa.
@@ -128,7 +129,7 @@ export default async function TrialLandingPage() {
               <div className="rounded-xl bg-[#111827] px-5 pt-5 pb-3 text-center">
                 <p className={`text-xl font-black tracking-tight uppercase md:text-2xl ${goldTitle}`}>Học thử miễn phí</p>
                 <p className="mt-1 text-sm text-white/80">
-                  {trials.length ? trials.map((t) => t.title).join(" · ") : "Các khóa quảng cáo Facebook & AI"}
+                  {firstTrial?.title ?? "Khóa Facebook Ads Chuyên Sâu Từ A-Z"}
                 </p>
                 <div className="mt-4 grid grid-cols-3 gap-2 text-[11px] font-semibold text-white/85 uppercase">
                   {HERO_CHIPS.map(([Icon, l]) => (
@@ -142,7 +143,7 @@ export default async function TrialLandingPage() {
                 <HomeAuthPanel from={trialFrom} quick />
               </div>
               <p className="px-5 py-3 text-center text-xs text-white/70">
-                Chỉ cần họ tên, số điện thoại, email. Tài khoản mới được tặng thêm khóa Facebook Ads Từ Cơ Bản Đến Nâng Cao.
+                Đăng ký tài khoản miễn phí bằng họ tên, số điện thoại, email là vào học thử ngay.
               </p>
             </div>
           </div>
@@ -242,46 +243,6 @@ export default async function TrialLandingPage() {
         </div>
       </section>
 
-      {/* 6. TẤT CẢ KHÓA HỌC */}
-      <section id="khoa-hoc" className="mx-auto max-w-6xl scroll-mt-20 px-4 py-14 md:px-6 md:py-20">
-        <h2 className="text-center text-2xl font-bold tracking-tight md:text-3xl">Tất cả khóa học</h2>
-        {courses.length === 0 ? (
-          <p className="text-muted-foreground mt-4 text-center text-sm">Chưa có khóa học nào được mở bán.</p>
-        ) : (
-          <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {courses.map((c) => (
-              <Card key={c.id} className="flex flex-col overflow-hidden transition-shadow hover:shadow-md">
-                <Link href={`/khoa-hoc/${c.slug}`}>
-                  <CourseCover course={c} className="aspect-video" />
-                </Link>
-                <div className="flex flex-1 flex-col p-5">
-                  <h3 className="font-semibold tracking-tight">
-                    <Link href={`/khoa-hoc/${c.slug}`} className="hover:text-primary">{c.title}</Link>
-                  </h3>
-                  {c.subtitle && <p className="text-muted-foreground mt-1 text-sm">{c.subtitle}</p>}
-                  <div className="text-muted-foreground mt-3 flex items-center gap-4 text-xs">
-                    <span className="inline-flex items-center gap-1"><BookOpen className="size-3.5" /> {c.lessonCount} bài</span>
-                    {c.totalSec > 0 && <span className="inline-flex items-center gap-1"><Clock className="size-3.5" /> {Math.round(c.totalSec / 60)} phút</span>}
-                    {trials.some((t) => t.slug === c.slug) && <span className="text-primary font-semibold">Có học thử</span>}
-                  </div>
-                  <div className="flex-1" />
-                  <div className="mt-4 flex items-end justify-between gap-2">
-                    <div>
-                      {c.compare_price_vnd && c.compare_price_vnd > c.price_vnd && (
-                        <p className="text-muted-foreground text-xs line-through">{formatVND(c.compare_price_vnd)}</p>
-                      )}
-                      <p className="text-lg font-bold">{c.price_vnd ? formatVND(c.price_vnd) : "Miễn phí"}</p>
-                    </div>
-                    <Button asChild size="sm">
-                      <Link href={`/khoa-hoc/${c.slug}`}>Xem chi tiết</Link>
-                    </Button>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
-        )}
-      </section>
 
       {/* 7. LÊ BÁ TÙNG LÀ AI — E-E-A-T */}
       <section className="bg-[#0a0e1a] text-white">
