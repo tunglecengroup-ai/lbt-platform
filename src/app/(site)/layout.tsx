@@ -3,7 +3,6 @@
 
 import { SiteHeader, SiteFooter } from "@/components/site-header";
 import { JsonLd } from "@/components/json-ld";
-import { ChatButtons } from "@/components/chat-buttons";
 import { organizationLd, orgId, personLd } from "@/lib/schema";
 import { BRAND, siteUrl } from "@/lib/site";
 
@@ -24,7 +23,6 @@ export default function SiteLayout({ children }: Readonly<{ children: React.Reac
       <SiteHeader />
       <div className="flex-1">{children}</div>
       <SiteFooter />
-      <ChatButtons />
     </div>
   );
 }

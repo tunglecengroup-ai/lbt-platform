@@ -5,6 +5,7 @@ import "./globals.css";
 import { Suspense } from "react";
 import { Analytics } from "@/components/analytics";
 import { SourceTracker } from "@/components/source-tracker";
+import { ChatButtons } from "@/components/chat-buttons";
 
 const beVietnam = Be_Vietnam_Pro({
   variable: "--font-sans-vn",
@@ -48,6 +49,7 @@ export default function RootLayout({
         <Suspense fallback={null}>
           <Analytics />
           <SourceTracker />
+          <ChatButtons />
         </Suspense>
       </body>
     </html>

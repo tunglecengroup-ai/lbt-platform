@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { Bot, Send, X, LoaderCircle } from "lucide-react";
 import { track } from "@/lib/track";
 
-/** Fanpage Lê Bá Tùng (page id) + Zalo hỗ trợ */
+/** Fanpage Lê Bá Tùng (page id) */
 const MESSENGER_URL = "https://m.me/107057668896782";
-const ZALO_URL = "https://zalo.me/0869126363";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -22,13 +22,6 @@ function MessengerIcon() {
   );
 }
 
-function ZaloIcon() {
-  return (
-    <svg viewBox="0 0 48 48" className="size-7" aria-hidden="true">
-      <text x="24" y="31" textAnchor="middle" fontFamily="Arial, Helvetica, sans-serif" fontWeight="700" fontSize="17" fill="currentColor">Zalo</text>
-    </svg>
-  );
-}
 
 /** Biến link trong câu trả lời thành thẻ <a> bấm được */
 function Linkify({ text }: { text: string }) {
@@ -91,9 +84,9 @@ function AiChat({ onClose }: { onClose: () => void }) {
         acc += dec.decode(value, { stream: true });
         setMsgs([...history, { role: "assistant", content: acc }]);
       }
-      if (!acc.trim()) setMsgs([...history, { role: "assistant", content: "Em chưa trả lời được, anh/chị thử lại hoặc nhắn Zalo 0869 126 363 nhé." }]);
+      if (!acc.trim()) setMsgs([...history, { role: "assistant", content: "Em chưa trả lời được, anh/chị thử lại hoặc nhắn Fanpage nhé." }]);
     } catch {
-      setMsgs([...history, { role: "assistant", content: "Mất kết nối, anh/chị thử lại hoặc nhắn Zalo 0869 126 363 nhé." }]);
+      setMsgs([...history, { role: "assistant", content: "Mất kết nối, anh/chị thử lại hoặc nhắn Fanpage nhé." }]);
     } finally {
       setBusy(false);
     }
@@ -134,7 +127,7 @@ function AiChat({ onClose }: { onClose: () => void }) {
       </div>
 
       <div className="border-t bg-white px-3 pt-2 pb-1 text-[11px] text-gray-500">
-        Cần người thật? <a href={ZALO_URL} target="_blank" rel="noopener" className="font-medium text-[#0068ff]">Zalo 0869 126 363</a> · <a href={MESSENGER_URL} target="_blank" rel="noopener" className="font-medium text-[#0068ff]">Fanpage</a>
+        Cần người thật? <a href={MESSENGER_URL} target="_blank" rel="noopener" onClick={() => track("contact", { channel: "messenger" })} className="font-medium text-[#0068ff]">Nhắn Fanpage Lê Bá Tùng</a>
       </div>
       <form
         onSubmit={(e) => {
@@ -159,14 +152,18 @@ function AiChat({ onClose }: { onClose: () => void }) {
   );
 }
 
-/** Nút nổi góc dưới bên TRÁI: Trợ lý AI + nhắn Fanpage (Messenger) + Zalo */
+/** Trang không hiện nút (khu quản trị, trang duyệt bài nội bộ) */
+const HIDDEN = (p: string) => p.startsWith("/admin") || p.startsWith("/duyet-") || p.startsWith("/l/xem-truoc");
+
+/** Nút nổi góc dưới bên TRÁI trên toàn web: Trợ lý AI + nhắn Fanpage (Messenger) */
 export function ChatButtons() {
   const [open, setOpen] = useState(false);
+  const pathname = usePathname() ?? "";
   const links = [
     { key: "messenger" as const, href: MESSENGER_URL, label: "Nhắn Fanpage", icon: <MessengerIcon />, bg: "bg-gradient-to-br from-[#00b2ff] via-[#006aff] to-[#a334fa]" },
-    { key: "zalo" as const, href: ZALO_URL, label: "Chat Zalo", icon: <ZaloIcon />, bg: "bg-[#0068ff]" },
   ];
 
+  if (HIDDEN(pathname)) return null;
   if (open) return <AiChat onClose={() => setOpen(false)} />;
 
   return (
