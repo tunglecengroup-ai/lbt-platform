@@ -34,7 +34,8 @@ function Field({ id, label, icon: Icon, children }: { id: string; label: string;
  * Đăng nhập: mặc định EMAIL + MẬT KHẨU; chưa có / quên mật khẩu -> nhận MÃ qua email.
  * Vào bằng mã mà chưa có mật khẩu (hoặc bấm "Quên mật khẩu") -> mời đặt mật khẩu (bỏ qua được),
  * lần sau khỏi chờ mã -> đỡ tốn hạn mức email.
- * Đăng ký: họ tên + email + SĐT -> mã -> đặt mật khẩu. Họ tên/SĐT ghi vào profiles (RLS profiles_update_own).
+ * Đăng ký: họ tên + email + SĐT -> vào học NGAY (/api/hoc/dang-ky-nhanh, không chờ mã).
+ * Email đã có tài khoản -> chuyển sang nhận mã như đăng nhập. Họ tên/SĐT ghi vào profiles (RLS profiles_update_own).
  * (Email cũng có nút vào học, bấm đi qua /auth/confirm.)
  */
 export function StudentAuthForm({
@@ -65,6 +66,46 @@ export function StudentAuthForm({
   const [forgot, setForgot] = useState(false);
   const [error, setError] = useState(params.get("error") ? "Link đăng nhập đã hết hạn, vui lòng lấy mã mới" : "");
   const [loading, setLoading] = useState(false);
+  const [notice, setNotice] = useState("");
+  const [trap, setTrap] = useState("");
+
+  /** Đăng ký 1 bước: tạo tài khoản + đăng nhập luôn, không gửi mã email */
+  async function quickRegister() {
+    setError("");
+    setNotice("");
+    if (fullName.trim().length < 2) return setError("Vui lòng nhập họ tên");
+    const ph = normalizePhone(phone);
+    if (!ph) return setError("Số điện thoại chưa đúng (vd 0912 345 678)");
+    setLoading(true);
+    try {
+      const res = await fetch("/api/hoc/dang-ky-nhanh", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fullName: fullName.trim(), email: email.trim().toLowerCase(), phone: ph, website: trap }),
+      });
+      const out = (await res.json().catch(() => ({}))) as { tokenHash?: string; exists?: boolean; error?: string };
+      if (out.exists) {
+        // Email đã có tài khoản -> xác minh bằng mã gửi về email (không cho vào thẳng)
+        setLoading(false);
+        setNotice("Email này đã có tài khoản. Nhập mã vừa gửi về email để vào học.");
+        return sendCode();
+      }
+      if (!out.tokenHash) {
+        setLoading(false);
+        return setError(out.error ?? "Không đăng ký được, thử lại sau");
+      }
+      const { error } = await createBrowserSupabase().auth.verifyOtp({ token_hash: out.tokenHash, type: "magiclink" });
+      if (error) {
+        setLoading(false);
+        return setError("Không đăng nhập được: " + error.message);
+      }
+      track("sign_up", { method: "quick" });
+      finish();
+    } catch {
+      setLoading(false);
+      setError("Mất kết nối, thử lại");
+    }
+  }
 
   async function sendCode() {
     setError("");
@@ -174,6 +215,7 @@ export function StudentAuthForm({
     if (step === "set-password") return savePassword();
     if (step === "code") return verifyCode();
     if (!register && method === "password") return loginWithPassword();
+    if (register) return quickRegister();
     return sendCode();
   }
 
@@ -191,7 +233,7 @@ export function StudentAuthForm({
       : step === "code"
         ? `Mã xác nhận đã gửi tới ${email}`
         : register
-          ? "Miễn phí — xác nhận email bằng mã, sau đó đặt mật khẩu"
+          ? "Miễn phí — điền thông tin là vào học ngay"
           : forgot
             ? "Nhập email để nhận mã, sau đó đặt mật khẩu mới"
             : "Đăng nhập để vào khu học tập";
@@ -233,12 +275,12 @@ export function StudentAuthForm({
             <>
               {register && (
                 <Field id="full_name" label="Họ và tên" icon={User}>
-                  <input id="full_name" required autoFocus autoComplete="name" value={fullName}
+                  <input id="full_name" required autoFocus={!embed} autoComplete="name" value={fullName}
                     onChange={(e) => setFullName(e.target.value)} placeholder="Nguyễn Văn A" className={inputClass} />
                 </Field>
               )}
               <Field id="email" label={register ? "Email" : "Email đã đăng ký học"} icon={Mail}>
-                <input id="email" type="email" required autoFocus={!register} autoComplete="email" value={email}
+                <input id="email" type="email" required autoFocus={!register && !embed} autoComplete="email" value={email}
                   onChange={(e) => setEmail(e.target.value)} placeholder="ban@email.com" className={inputClass} />
               </Field>
               {!register && method === "password" && (
@@ -252,6 +294,10 @@ export function StudentAuthForm({
                   <input id="phone" type="tel" inputMode="tel" required autoComplete="tel" value={phone}
                     onChange={(e) => setPhone(e.target.value)} placeholder="0912 345 678" className={inputClass} />
                 </Field>
+              )}
+              {register && (
+                <input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" value={trap}
+                  onChange={(e) => setTrap(e.target.value)} className="absolute -left-[9999px] h-0 w-0 opacity-0" />
               )}
             </>
           )}
@@ -280,6 +326,9 @@ export function StudentAuthForm({
             </>
           )}
 
+          {notice && !error && (
+            <p className="bg-primary/10 text-primary rounded-md px-3 py-2 text-sm">{notice}</p>
+          )}
           {error && (
             <p role="alert" className="text-danger bg-danger-soft rounded-md px-3 py-2 text-sm">{error}</p>
           )}

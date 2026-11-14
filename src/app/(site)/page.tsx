@@ -12,7 +12,6 @@ import { listFeaturedReviews, listPublishedPosts } from "@/lib/content";
 import { formatDuration, formatVND } from "@/lib/utils";
 import { AUTHOR, SOCIALS, socialName, TRIAL_VIDEO, TRIAL_VIDEO_META, learnHref, marketingHref, youtubeIdFrom } from "@/lib/site";
 import { JsonLd } from "@/components/json-ld";
-import { TrialTabs } from "@/components/trial-tabs";
 import { HomeAuthPanel } from "@/components/home-auth-panel";
 import { listTrialCourses } from "@/lib/trial-courses";
 import { faqLd, orgId, personId } from "@/lib/schema";
@@ -24,7 +23,7 @@ export const revalidate = 300;
 const CHANNEL = { subs: "141.000+", videos: "2.000+", views: "6,9 triệu" };
 
 const FAQS = [
-  { q: "Tôi muốn học thử có được không?", a: "Được. Đăng ký tài khoản miễn phí (họ tên, số điện thoại, email) là vào học ngay các bài học thử của khóa Facebook Ads Chuyên Sâu và khóa AI. Bài có nhãn “Học thử” xem miễn phí, các bài còn lại mở khi đăng ký khóa." },
+  { q: "Tôi muốn học thử có được không?", a: "Được. Điền họ tên, số điện thoại, email ở đầu trang là vào học ngay các bài học thử của khóa Facebook Ads Chuyên Sâu và khóa AI. Bài có nhãn “Học thử” xem miễn phí, các bài còn lại mở khi đăng ký khóa." },
   { q: "Người mới chưa biết gì có học được quảng cáo Facebook không?", a: "Được. Tài khoản mới còn được tặng khóa Facebook Ads Từ Cơ Bản Đến Nâng Cao để học từ đầu: tạo tài khoản, fanpage, đọc chỉ số rồi mới tới tối ưu và mở rộng." },
   { q: "Học online như thế nào, có hết hạn không?", a: "Học trên điện thoại hoặc máy tính tại hoc.lebatung.com. Lần đầu đăng nhập bằng mã gửi về email, sau đó đặt mật khẩu. Mỗi khóa học được tối đa 12 tháng kể từ ngày kích hoạt." },
   { q: "Thanh toán xong bao lâu thì vào học được?", a: "Chuyển khoản qua mã QR đúng nội dung, hệ thống tự mở khóa trong vài giây và gửi email hướng dẫn vào học." },
@@ -75,7 +74,7 @@ export default async function HomePage() {
   ]);
   const trialId = youtubeIdFrom(TRIAL_VIDEO);
   const firstTrial = trials[0];
-  const trialFrom = firstTrial ? `/hoc/${firstTrial.slug}` : "/hoc";
+  const trialFrom = firstTrial ? `/hoc/${firstTrial.slug}${firstTrial.firstFreeId ? `/${firstTrial.firstFreeId}` : ""}` : "/hoc";
   const trialVideos = trials.reduce((n, t) => n + t.total, 0);
 
   return (
@@ -163,17 +162,6 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
-
-      {/* 2. XEM TRƯỚC BÀI HỌC THỬ */}
-      {trials.length > 0 && (
-        <section className="border-b bg-gradient-to-b from-primary/5 to-transparent">
-          <div className="mx-auto max-w-6xl px-4 py-12 text-center md:px-6 md:py-16">
-            <h2 className="text-2xl font-bold tracking-tight md:text-3xl">Xem trước bài học thật trong khóa</h2>
-            <p className="text-muted-foreground mx-auto mt-2 max-w-2xl">Bài có ▶ học miễn phí ngay sau khi đăng ký, bài có 🔒 mở khi đăng ký khóa.</p>
-            <TrialTabs courses={trials} registerBase={learnHref("/hoc/dang-ky")} loginBase={learnHref("/hoc/dang-nhap")} />
-          </div>
-        </section>
-      )}
 
       {/* 3. HỌC VIÊN NÓI GÌ */}
       {reviews.length > 0 && (

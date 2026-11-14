@@ -10,6 +10,8 @@ export type TrialCourse = {
   price: number;
   comparePrice: number | null;
   videoId: string | null;
+  /** Bài học thử đầu tiên (đăng ký xong mở thẳng bài này) */
+  firstFreeId: string | null;
   free: { title: string }[];
   locked: { title: string }[];
   total: number;
@@ -31,7 +33,7 @@ export async function listTrialCourses(): Promise<TrialCourse[]> {
   const ids = courses.map((c) => c.id);
   const [{ data: chapters }, { data: lessons }] = await Promise.all([
     db.from("chapters").select("id, course_id, position, title").in("course_id", ids),
-    db.from("lessons").select("course_id, chapter_id, position, title, is_free_preview, youtube_id, duration_seconds").in("course_id", ids),
+    db.from("lessons").select("id, course_id, chapter_id, position, title, is_free_preview, youtube_id, duration_seconds").in("course_id", ids),
   ]);
   const chPos = new Map((chapters ?? []).map((c) => [c.id, c.position as number]));
   return courses.map((c) => {
@@ -45,6 +47,7 @@ export async function listTrialCourses(): Promise<TrialCourse[]> {
       subtitle: c.subtitle,
       price: c.price_vnd,
       comparePrice: c.compare_price_vnd,
+      firstFreeId: free[0]?.id ?? null,
       videoId: free.find((l) => l.youtube_id)?.youtube_id ?? null,
       free: free.map((l) => ({ title: l.title })),
       locked: ls.filter((l) => !l.is_free_preview).map((l) => ({ title: l.title })),
