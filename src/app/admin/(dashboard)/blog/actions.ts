@@ -11,11 +11,21 @@ const optStr = (f: FormData, k: string) => str(f, k) || null;
 
 /** Bỏ script, sự kiện on*, style/class dán từ Word/Google Docs — giữ thẻ định dạng cơ bản */
 function cleanHtml(html: string) {
-  return html
-    .replace(/<(script|style|meta|link)\b[\s\S]*?(<\/\1>|\/?>)/gi, "")
-    .replace(/\s(on\w+|style|class|id|data-[\w-]+)\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+  // Giữ khối JSON-LD (FAQ/HowTo do công cụ blog-auto chèn) — không chạy được, chỉ để Google/AI đọc
+  const ld: string[] = [];
+  const kept = html.replace(/<script\b[^>]*type=["']application\/ld\+json["'][^>]*>[\s\S]*?<\/script>/gi, (m) => {
+    ld.push(m.replace(/^<script\b[^>]*>/i, '<script type="application/ld+json">'));
+    return `\u0000LD${ld.length - 1}\u0000`;
+  });
+  return kept
+    .replace(/<(script|style)\b[\s\S]*?<\/\1\s*>/gi, "")
+    .replace(/<(script|style|meta|link)\b[^>]*>/gi, "")
+    .replace(/\s(on\w+|style|id|data-[\w-]+)\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+    // class chỉ giữ "tldr" (hộp Trả lời nhanh), bỏ class dán từ Word/Google Docs
+    .replace(/\sclass\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, (m, v: string) => (/^["']?tldr["']?$/.test(v) ? ' class="tldr"' : ""))
     .replace(/href\s*=\s*(["'])\s*javascript:[^"']*\1/gi, 'href="#"')
     .replace(/<p>(\s|&nbsp;|<br\s*\/?>)*<\/p>/gi, "")
+    .replace(/\u0000LD(\d+)\u0000/g, (_, i: string) => ld[Number(i)])
     .trim();
 }
 
