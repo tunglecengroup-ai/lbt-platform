@@ -25,7 +25,7 @@ type EventMap = {
   begin_checkout: { item: TrackItem };
   sign_up: { method?: string };
   /** Khách bấm nút nhắn tin (Messenger / Zalo) */
-  contact: { channel: "messenger" | "zalo" };
+  contact: { channel: "messenger" | "zalo" | "ai" };
   purchase: { transactionId: string; value: number; item: TrackItem };
 };
 
