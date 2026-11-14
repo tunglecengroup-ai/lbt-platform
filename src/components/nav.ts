@@ -12,6 +12,7 @@ import {
   Plug,
   LayoutTemplate,
   Radar,
+  Send,
   type LucideIcon,
 } from "lucide-react";
 
@@ -30,6 +31,7 @@ export const navItems: NavItem[] = [
   { href: "/admin/orders", label: "Đơn hàng", icon: Receipt },
   { href: "/admin/landing", label: "Trang bán (Landing)", icon: LayoutTemplate },
   { href: "/admin/nguon-khach", label: "Nguồn khách", icon: Radar },
+  { href: "/admin/dang-bai", label: "Đăng bài đa kênh", icon: Send },
   { href: "/admin/membership", label: "Thành viên Member", icon: Crown },
   { href: "/admin/codes", label: "Mã kích hoạt", icon: KeyRound },
   { href: "/admin/blog", label: "Blog & trang", icon: Newspaper },

@@ -11,6 +11,8 @@ const EDUBIT_COURSES = [
 ];
 
 const nextConfig: NextConfig = {
+  // Tải ảnh bài đăng đa kênh qua Server Action (Netlify giới hạn ~6MB/lượt gửi)
+  experimental: { serverActions: { bodySizeLimit: "5mb" } },
   async redirects() {
     return [
       ...EDUBIT_COURSES.map((slug) => ({ source: `/${slug}`, destination: `/khoa-hoc/${slug}`, permanent: true })),
