@@ -12,13 +12,15 @@ export async function approvePost(form: FormData) {
   if (!isValidApproveToken(id, t)) throw new Error("Link duyệt không hợp lệ");
 
   const db = createAdminSupabase();
-  const { data: post } = await db.from("posts").select("id, slug, content_html, is_published").eq("id", id).single();
+  const { data: post } = await db.from("posts").select("id, slug, content_html, is_published, published_at").eq("id", id).single();
   if (!post) throw new Error("Không thấy bài");
   if (post.content_html.includes(MISSING_FACT_MARK)) redirect(`/duyet-bai/${id}?t=${t}&loi=thieu-so`);
 
   if (!post.is_published) {
-    const now = new Date().toISOString();
-    const { error } = await db.from("posts").update({ is_published: true, published_at: now, updated_at: now }).eq("id", id);
+    const now = new Date();
+    // Bài đã hẹn giờ (lịch tuần của blog-auto) thì giữ giờ hẹn, còn lại đăng ngay
+    const when = post.published_at && new Date(post.published_at) > now ? post.published_at : now.toISOString();
+    const { error } = await db.from("posts").update({ is_published: true, published_at: when, updated_at: now.toISOString() }).eq("id", id);
     if (error) throw new Error(error.message);
   }
   revalidatePath("/blog");
