@@ -1,5 +1,6 @@
 "use server";
 
+import { readAttribution } from "@/lib/attribution";
 import { redirect } from "next/navigation";
 import { createPublicSupabase } from "@/lib/supabase/public";
 import { createOrder, fulfillOrder, getPlanBySlug } from "@/lib/orders";
@@ -22,7 +23,7 @@ export async function checkout(_prev: CheckoutState, form: FormData): Promise<Ch
   if (form.get("kind") === "plan") {
     const plan = await getPlanBySlug(slug);
     if (!plan) return { error: "Gói thành viên không tồn tại" };
-    const order = await createOrder({ planId: plan.id, itemTitle: plan.name, amount: plan.price_vnd, name, email, phone });
+    const order = await createOrder({ planId: plan.id, itemTitle: plan.name, amount: plan.price_vnd, name, email, phone, attribution: await readAttribution() });
     if (plan.price_vnd === 0) await fulfillOrder(order.id, "free");
     redirect(`/don-hang/${order.id}`);
   }
@@ -36,7 +37,7 @@ export async function checkout(_prev: CheckoutState, form: FormData): Promise<Ch
     .maybeSingle();
   if (!course) return { error: "Khóa học không tồn tại" };
 
-  const order = await createOrder({ courseId: course.id, itemTitle: course.title, amount: course.price_vnd, name, email, phone });
+  const order = await createOrder({ courseId: course.id, itemTitle: course.title, amount: course.price_vnd, name, email, phone, attribution: await readAttribution() });
   if (course.price_vnd === 0) await fulfillOrder(order.id, "free");
 
   redirect(`/don-hang/${order.id}`);

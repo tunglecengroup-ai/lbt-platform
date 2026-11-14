@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { createServerSupabase } from "@/lib/supabase/server";
+import { saveSignupSource } from "@/lib/attribution";
 
 /** Học viên bấm link trong email đăng nhập -> đổi token lấy phiên rồi vào học */
 export async function GET(request: NextRequest) {
@@ -18,5 +19,7 @@ export async function GET(request: NextRequest) {
       : { error: new Error("missing token") };
 
   if (error) return NextResponse.redirect(new URL("/hoc/dang-nhap?error=1", request.url));
+  const { data } = await supabase.auth.getUser();
+  if (data.user) await saveSignupSource(data.user.id).catch(() => {});
   return NextResponse.redirect(new URL(next, request.url));
 }

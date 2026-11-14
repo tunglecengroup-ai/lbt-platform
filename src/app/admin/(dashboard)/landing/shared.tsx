@@ -25,7 +25,7 @@ export function RangeTabs({ current, base }: { current: string; base: string }) 
       {RANGES.map((r) => (
         <Link
           key={r.key}
-          href={`${base}?range=${r.key}`}
+          href={`${base}${base.includes("?") ? "&" : "?"}range=${r.key}`}
           className={`rounded-md px-3 py-1.5 font-medium ${current === r.key ? "bg-card shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
         >
           {r.label}

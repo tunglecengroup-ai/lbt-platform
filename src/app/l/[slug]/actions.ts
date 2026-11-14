@@ -1,5 +1,6 @@
 "use server";
 
+import { readAttribution } from "@/lib/attribution";
 import { redirect } from "next/navigation";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import { cleanUtm, getLandingById } from "@/lib/landing";
@@ -44,6 +45,7 @@ export async function landingCheckout(_prev: LandingCheckoutState, form: FormDat
     name,
     email,
     phone,
+    attribution: await readAttribution(),
     landingId: landing.id,
     utm: cleanUtm(utm),
   });

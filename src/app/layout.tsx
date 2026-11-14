@@ -4,6 +4,7 @@ import { Be_Vietnam_Pro } from "next/font/google";
 import "./globals.css";
 import { Suspense } from "react";
 import { Analytics } from "@/components/analytics";
+import { SourceTracker } from "@/components/source-tracker";
 
 const beVietnam = Be_Vietnam_Pro({
   variable: "--font-sans-vn",
@@ -46,6 +47,7 @@ export default function RootLayout({
         {children}
         <Suspense fallback={null}>
           <Analytics />
+          <SourceTracker />
         </Suspense>
       </body>
     </html>

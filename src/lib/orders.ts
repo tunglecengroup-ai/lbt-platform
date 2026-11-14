@@ -7,6 +7,8 @@ import { enqueueAutomation, stopAutomation } from "@/lib/automation";
 import { getPlanBySlug, grantMembership, PLAN_COLUMNS, type MembershipPlan } from "@/lib/membership";
 import { formatVND } from "@/lib/utils";
 import { sendMetaPurchase } from "@/lib/meta-capi";
+import { orderSourceColumns } from "@/lib/attribution";
+import { channelFromSource, type Attribution } from "@/lib/channels";
 
 const normEmail = (e: string) => e.trim().toLowerCase();
 
@@ -22,6 +24,8 @@ export async function createOrder(input: {
   /** Nguồn đơn: trang bán + UTM quảng cáo */
   landingId?: string | null;
   utm?: Partial<Record<"utm_source" | "utm_medium" | "utm_campaign" | "utm_content" | "utm_term", string>>;
+  /** Nguồn khách đọc từ cookie (readAttribution) — kênh lần chạm gần nhất + lần đầu */
+  attribution?: Attribution;
 }) {
   const db = createAdminSupabase();
   for (let i = 0; i < 5; i++) {
@@ -37,7 +41,10 @@ export async function createOrder(input: {
         customer_phone: input.phone,
         status: "pending",
         landing_id: input.landingId ?? null,
+        ...(input.attribution ? orderSourceColumns(input.attribution) : {}),
         ...(input.utm ?? {}),
+        // UTM riêng của trang bán (nếu có) quyết định kênh của đơn
+        ...(input.utm?.utm_source ? { channel: channelFromSource(input.utm.utm_source, input.utm.utm_medium) } : {}),
       })
       .select("*")
       .single();
@@ -189,6 +196,21 @@ export async function fulfillOrder(orderId: string, method: string, txRef?: stri
     }
 
     const { data: updated } = await db.from("orders").update({ user_id: userId }).eq("id", orderId).select("*").single();
+
+    // Tài khoản tạo lúc mua (khách chưa từng đăng ký): lấy nguồn của đơn làm nguồn tài khoản
+    const src = order as OrderRow & { channel?: string | null; first_channel?: string | null; utm_campaign?: string | null; utm_content?: string | null; utm_source?: string | null };
+    if (src.channel || src.first_channel) {
+      await db
+        .from("profiles")
+        .update({
+          first_channel: src.first_channel ?? src.channel,
+          signup_channel: src.channel ?? src.first_channel,
+          signup_utm_campaign: src.utm_campaign ?? null,
+          signup_utm_content: src.utm_content ?? null,
+        })
+        .eq("id", userId)
+        .is("first_channel", null);
+    }
 
     await sendMetaPurchase({
       code: order.code, orderId: order.id, amount_vnd: order.amount_vnd,
