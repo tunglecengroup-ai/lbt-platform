@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Field, inputClass } from "@/components/ui/field";
 import { ConfirmButton } from "@/components/confirm-button";
+import { SaveButton } from "@/components/save-button";
+import { CoverUpload } from "@/components/cover-upload";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import { formatDuration } from "@/lib/utils";
 import type { CourseRow } from "@/lib/types";
@@ -21,6 +23,7 @@ import {
   updateChapter,
   updateCourse,
   updateLesson,
+  uploadCourseCover,
 } from "../actions";
 
 type AdminLesson = {
@@ -85,8 +88,8 @@ export default async function CourseEditPage({ params }: PageProps<"/admin/cours
               <Field label="Bạn sẽ học được" hint="Mỗi dòng 1 ý" className="sm:col-span-2">
                 <textarea name="outcomes" rows={4} defaultValue={(c.outcomes ?? []).join("\n")} className={areaClass} />
               </Field>
-              <Field label="Ảnh bìa (link ảnh)" hint="Tỉ lệ 16:9, để trống dùng dải màu" className="sm:col-span-2">
-                <input name="cover_url" type="url" defaultValue={c.cover_url ?? ""} className={inputClass} placeholder="https://…" />
+              <Field label="Ảnh bìa" hint="Tỉ lệ 16:9 (vd 1280×720). Dán link hoặc tải ảnh từ máy; để trống dùng dải màu" className="sm:col-span-2">
+                <CoverUpload name="cover_url" defaultValue={c.cover_url ?? ""} courseId={c.id} upload={uploadCourseCover} />
               </Field>
               <Field label="Giá bán (đ)"><input name="price" inputMode="numeric" defaultValue={c.price_vnd} className={inputClass} /></Field>
               <Field label="Giá gạch (đ)" hint="Để trống nếu không giảm giá"><input name="compare_price" inputMode="numeric" defaultValue={c.compare_price_vnd ?? ""} className={inputClass} /></Field>
@@ -100,7 +103,7 @@ export default async function CourseEditPage({ params }: PageProps<"/admin/cours
                 <input type="checkbox" name="trial_featured" defaultChecked={(c as { trial_featured?: boolean }).trial_featured} className="accent-[hsl(var(--primary))] size-4" />
                 Hiện ở mục &quot;Học thử miễn phí&quot; trang chủ (bài tích &quot;Cho học thử miễn phí&quot; mở, bài khác khóa)
               </label>
-              <div className="sm:col-span-2"><Button type="submit">Lưu thông tin</Button></div>
+              <div className="sm:col-span-2"><SaveButton>Lưu thông tin</SaveButton></div>
             </form>
           </CardContent>
         </Card>
@@ -121,7 +124,7 @@ export default async function CourseEditPage({ params }: PageProps<"/admin/cours
                     <input type="hidden" name="course_id" value={c.id} />
                     <input name="position" defaultValue={ch.position} aria-label="Thứ tự" className={`${inputClass} w-14 text-center`} />
                     <input name="title" defaultValue={ch.title} aria-label="Tên chương" className={`${inputClass} font-semibold`} />
-                    <Button type="submit" variant="outline" size="sm">Lưu</Button>
+                    <SaveButton variant="outline" size="sm">Lưu</SaveButton>
                   </form>
                   <form action={deleteChapter}>
                     <input type="hidden" name="id" value={ch.id} />
@@ -168,7 +171,7 @@ export default async function CourseEditPage({ params }: PageProps<"/admin/cours
                             <input type="checkbox" name="is_free_preview" defaultChecked={l.is_free_preview} className="size-4" /> Cho học thử miễn phí
                           </label>
                           <div className="flex justify-end gap-2 sm:col-span-2">
-                            <Button type="submit" size="sm">Lưu bài</Button>
+                            <SaveButton size="sm">Lưu bài</SaveButton>
                             <ConfirmButton message={`Xóa bài "${l.title}"?`} size="sm" variant="ghost" formAction={deleteLesson} className="text-danger">Xóa bài</ConfirmButton>
                           </div>
                         </form>

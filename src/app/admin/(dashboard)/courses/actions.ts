@@ -156,3 +156,19 @@ export async function deleteLesson(form: FormData) {
   await createAdminSupabase().from("lessons").delete().eq("id", str(form, "id"));
   refresh(str(form, "course_id"));
 }
+
+/** Tải ảnh bìa khóa học từ máy lên kho ảnh công khai (Supabase Storage, bucket social-media/courses/) — trả link ảnh */
+export async function uploadCourseCover(form: FormData): Promise<{ url?: string; error?: string }> {
+  await assertAdmin();
+  const courseId = str(form, "course_id");
+  const f = form.get("file");
+  if (!(f instanceof File) || f.size === 0) return { error: "Chưa chọn ảnh" };
+  if (!f.type.startsWith("image/")) return { error: "Chỉ nhận file ảnh (jpg, png, webp)" };
+  if (f.size > 4_500_000) return { error: "Ảnh quá 4,5MB — chọn ảnh nhỏ hơn" };
+  const ext = f.type === "image/png" ? "png" : f.type === "image/webp" ? "webp" : "jpg";
+  const path = `courses/${courseId || "chung"}/${Date.now()}-${Math.random().toString(36).slice(2, 7)}.${ext}`;
+  const db = createAdminSupabase();
+  const { error } = await db.storage.from("social-media").upload(path, f, { contentType: f.type, upsert: false });
+  if (error) return { error: "Không tải được ảnh: " + error.message };
+  return { url: db.storage.from("social-media").getPublicUrl(path).data.publicUrl };
+}
