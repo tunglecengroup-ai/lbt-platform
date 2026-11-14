@@ -34,18 +34,22 @@ function Field({ id, label, icon: Icon, children }: { id: string; label: string;
  * Đăng nhập: mặc định EMAIL + MẬT KHẨU; chưa có / quên mật khẩu -> nhận MÃ qua email.
  * Vào bằng mã mà chưa có mật khẩu (hoặc bấm "Quên mật khẩu") -> mời đặt mật khẩu (bỏ qua được),
  * lần sau khỏi chờ mã -> đỡ tốn hạn mức email.
- * Đăng ký: họ tên + email + SĐT -> vào học NGAY (/api/hoc/dang-ky-nhanh, không chờ mã).
- * Email đã có tài khoản -> chuyển sang nhận mã như đăng nhập. Họ tên/SĐT ghi vào profiles (RLS profiles_update_own).
+ * Đăng ký: họ tên + email + SĐT -> mã -> đặt mật khẩu.
+ * quick (ladi /hoc-thu): họ tên + email + SĐT -> vào học NGAY (/api/hoc/dang-ky-nhanh, không chờ mã);
+ * email đã có tài khoản -> chuyển sang nhận mã như cũ. Họ tên/SĐT ghi vào profiles (RLS profiles_update_own).
  * (Email cũng có nút vào học, bấm đi qua /auth/confirm.)
  */
 export function StudentAuthForm({
   mode,
   embed = false,
+  quick = false,
   from: fromProp,
 }: {
   mode: "login" | "register";
   /** Gắn trong trang khác (trang chủ): bỏ khung toàn trang + tiêu đề */
   embed?: boolean;
+  /** Đăng ký 1 bước, không chờ mã (chỉ trang ladi học thử) */
+  quick?: boolean;
   /** Đăng nhập xong chuyển tới đâu (mặc định đọc ?from=) */
   from?: string;
 }) {
@@ -215,7 +219,7 @@ export function StudentAuthForm({
     if (step === "set-password") return savePassword();
     if (step === "code") return verifyCode();
     if (!register && method === "password") return loginWithPassword();
-    if (register) return quickRegister();
+    if (register && quick) return quickRegister();
     return sendCode();
   }
 
@@ -233,7 +237,7 @@ export function StudentAuthForm({
       : step === "code"
         ? `Mã xác nhận đã gửi tới ${email}`
         : register
-          ? "Miễn phí — điền thông tin là vào học ngay"
+          ? quick ? "Miễn phí — điền thông tin là vào học ngay" : "Miễn phí — xác nhận email bằng mã, sau đó đặt mật khẩu"
           : forgot
             ? "Nhập email để nhận mã, sau đó đặt mật khẩu mới"
             : "Đăng nhập để vào khu học tập";

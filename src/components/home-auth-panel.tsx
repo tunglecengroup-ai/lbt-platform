@@ -4,8 +4,8 @@ import { Suspense, useState } from "react";
 import { StudentAuthForm } from "@/components/student-auth-form";
 import { cn } from "@/lib/utils";
 
-/** Khung "Đăng ký học thử / Đăng nhập" đặt ngay trên trang chủ */
-export function HomeAuthPanel({ from }: { from: string }) {
+/** Khung "Đăng ký học thử / Đăng nhập" nhúng trong trang (ladi /hoc-thu). quick = đăng ký 1 bước, vào học ngay */
+export function HomeAuthPanel({ from, quick = false }: { from: string; quick?: boolean }) {
   const [tab, setTab] = useState<"register" | "login">("register");
   return (
     <div>
@@ -23,7 +23,7 @@ export function HomeAuthPanel({ from }: { from: string }) {
       </div>
       <div className="mt-4">
         <Suspense fallback={null}>
-          <StudentAuthForm key={tab} mode={tab} embed from={from} />
+          <StudentAuthForm key={tab} mode={tab} embed quick={quick} from={from} />
         </Suspense>
       </div>
     </div>
