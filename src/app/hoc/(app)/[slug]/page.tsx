@@ -8,6 +8,7 @@ import {
   Clock,
   BookOpen,
   Circle,
+  Lock,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,8 +29,11 @@ export default async function CoursePage({
   if (!course) notFound();
 
   const { total, done, totalSec, progress } = course;
-  const resume = resumeLesson(course);
+  // Chưa mua: bắt đầu từ bài học thử đầu tiên (bài khác đang khóa)
+  const firstFree = course.chapters.flatMap((c) => c.lessons).find((l) => l.is_free_preview);
+  const resume = course.enrolled ? resumeLesson(course) : firstFree ?? null;
   const startHref = resume ? `/hoc/${course.slug}/${resume.id}` : `/hoc/${course.slug}`;
+  const freeCount = course.chapters.flatMap((c) => c.lessons).filter((l) => l.is_free_preview).length;
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-8 md:px-6">
@@ -60,8 +64,11 @@ export default async function CoursePage({
 
       {!course.enrolled && (
         <Card className="border-primary/30 bg-primary/5 mt-4 flex flex-col gap-3 p-5 sm:flex-row sm:items-center">
-          <p className="flex-1 text-sm">Bạn đang xem thử. Đăng ký khóa học để mở toàn bộ bài giảng.</p>
-          <Button asChild><Link href={marketingHref(`/khoa-hoc/${course.slug}/mua`)}>Đăng ký học</Link></Button>
+          <div className="flex-1 text-sm">
+            <p className="font-semibold">Bạn đang học thử: {freeCount} bài miễn phí, {total - freeCount} bài đang khóa 🔒</p>
+            <p className="text-muted-foreground mt-0.5">Đăng ký khóa học để mở toàn bộ bài giảng, học trong 12 tháng.</p>
+          </div>
+          <Button asChild><Link href={marketingHref(`/khoa-hoc/${course.slug}/mua`)}>Mở khóa toàn bộ</Link></Button>
         </Card>
       )}
 
@@ -132,7 +139,11 @@ export default async function CoursePage({
                     <span className="text-muted-foreground tabular hidden text-xs sm:inline">
                       {formatDuration(lesson.duration_seconds)}
                     </span>
-                    <PlayCircle className="text-muted-foreground size-4 shrink-0" />
+                    {course.enrolled || lesson.is_free_preview ? (
+                      <PlayCircle className="text-muted-foreground size-4 shrink-0" />
+                    ) : (
+                      <Lock className="text-muted-foreground size-4 shrink-0" />
+                    )}
                   </Link>
                 ))}
               </Card>

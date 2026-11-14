@@ -67,6 +67,7 @@ export async function updateCourse(form: FormData) {
       gr_campaign_id: optStr(form, "gr_campaign_id"),
       position: int(form, "position") ?? 0,
       is_published: form.get("is_published") === "on",
+      trial_featured: form.get("trial_featured") === "on",
       outcomes,
     })
     .eq("id", id);

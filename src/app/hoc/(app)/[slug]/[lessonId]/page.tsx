@@ -63,9 +63,10 @@ export default async function LessonPage({ params }: PageProps<"/hoc/[slug]/[les
                     <span className="flex size-14 items-center justify-center rounded-full bg-white/10 ring-1 ring-white/20">
                       <Lock className="size-6 text-white" />
                     </span>
-                    <p className="text-sm font-medium text-white/80">Bài học dành cho học viên đã đăng ký</p>
+                    <p className="text-sm font-medium text-white/90">Bài này đang khóa — bạn đang học thử khóa học</p>
+                    <p className="text-xs text-white/60">Các bài có nhãn “Học thử” vẫn xem miễn phí. Đăng ký khóa để mở toàn bộ.</p>
                     <Button asChild size="sm">
-                      <Link href={marketingHref(`/khoa-hoc/${slug}/mua`)}>Đăng ký để mở khóa</Link>
+                      <Link href={marketingHref(`/khoa-hoc/${slug}/mua`)}>Mở khóa toàn bộ khóa học</Link>
                     </Button>
                   </>
                 )}

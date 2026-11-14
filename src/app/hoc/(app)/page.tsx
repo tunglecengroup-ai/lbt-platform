@@ -9,10 +9,13 @@ import { CourseCover } from "@/components/course-cover";
 import { getActiveMembership } from "@/lib/membership";
 import { marketingHref } from "@/lib/site";
 import { formatDate } from "@/lib/utils";
+import { listTrialCourses } from "@/lib/trial-courses";
 
 export default async function MyCoursesPage() {
   const { id } = await getStudentId();
-  const [currentStudent, myCourses, membership] = await Promise.all([getStudent(), getMyCourses(), getActiveMembership(id)]);
+  const [currentStudent, myCourses, membership, trialAll] = await Promise.all([getStudent(), getMyCourses(), getActiveMembership(id), listTrialCourses()]);
+  // Khóa học thử chưa sở hữu
+  const trials = trialAll.filter((t) => !myCourses.some((c) => c.slug === t.slug));
   const firstName = currentStudent.name.split(" ").pop();
 
   return (
@@ -54,6 +57,24 @@ export default async function MyCoursesPage() {
           <Button asChild size="sm"><Link href="/hoc/cong-cu">Mở</Link></Button>
         </Card>
       </div>
+
+      {trials.length > 0 && (
+        <div className="mb-8">
+          <h2 className="mb-3 text-lg font-semibold tracking-tight">Khóa học thử miễn phí</h2>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {trials.map((t) => (
+              <Card key={t.slug} className="flex flex-col p-5">
+                <p className="font-semibold">{t.title}</p>
+                <p className="text-muted-foreground mt-1 text-sm">{t.free.length} bài học thử miễn phí · {t.locked.length} bài mở khi đăng ký khóa</p>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Button asChild size="sm"><Link href={`/hoc/${t.slug}`}><PlayCircle className="size-4" /> Vào học thử</Link></Button>
+                  <Button asChild size="sm" variant="outline"><Link href={marketingHref(`/khoa-hoc/${t.slug}/mua`)}>Mở khóa toàn bộ</Link></Button>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
 
       {myCourses.length === 0 && (
         <Card className="p-8 text-center">

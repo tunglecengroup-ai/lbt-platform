@@ -96,6 +96,10 @@ export default async function CourseEditPage({ params }: PageProps<"/admin/cours
                 <input type="checkbox" name="is_published" defaultChecked={c.is_published} className="accent-[hsl(var(--primary))] size-4" />
                 Mở bán (hiện trên trang chủ)
               </label>
+              <label className="flex items-center gap-2 text-sm font-medium sm:col-span-2">
+                <input type="checkbox" name="trial_featured" defaultChecked={(c as { trial_featured?: boolean }).trial_featured} className="accent-[hsl(var(--primary))] size-4" />
+                Hiện ở mục &quot;Học thử miễn phí&quot; trang chủ (bài tích &quot;Cho học thử miễn phí&quot; mở, bài khác khóa)
+              </label>
               <div className="sm:col-span-2"><Button type="submit">Lưu thông tin</Button></div>
             </form>
           </CardContent>
