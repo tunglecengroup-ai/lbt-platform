@@ -13,6 +13,9 @@ export type TrialCourse = {
   free: { title: string }[];
   locked: { title: string }[];
   total: number;
+  totalSec: number;
+  /** Mục lục theo chương (cho phần "Khóa học dạy gì") */
+  chapters: { title: string; lessons: { title: string; sec: number; free: boolean }[] }[];
 };
 
 export async function listTrialCourses(): Promise<TrialCourse[]> {
@@ -27,8 +30,8 @@ export async function listTrialCourses(): Promise<TrialCourse[]> {
   if (!courses?.length) return [];
   const ids = courses.map((c) => c.id);
   const [{ data: chapters }, { data: lessons }] = await Promise.all([
-    db.from("chapters").select("id, course_id, position").in("course_id", ids),
-    db.from("lessons").select("course_id, chapter_id, position, title, is_free_preview, youtube_id").in("course_id", ids),
+    db.from("chapters").select("id, course_id, position, title").in("course_id", ids),
+    db.from("lessons").select("course_id, chapter_id, position, title, is_free_preview, youtube_id, duration_seconds").in("course_id", ids),
   ]);
   const chPos = new Map((chapters ?? []).map((c) => [c.id, c.position as number]));
   return courses.map((c) => {
@@ -46,6 +49,15 @@ export async function listTrialCourses(): Promise<TrialCourse[]> {
       free: free.map((l) => ({ title: l.title })),
       locked: ls.filter((l) => !l.is_free_preview).map((l) => ({ title: l.title })),
       total: ls.length,
+      totalSec: ls.reduce((t, l) => t + (l.duration_seconds ?? 0), 0),
+      chapters: (chapters ?? [])
+        .filter((ch) => ch.course_id === c.id)
+        .sort((a, b) => a.position - b.position)
+        .map((ch) => ({
+          title: ch.title,
+          lessons: ls.filter((l) => l.chapter_id === ch.id).map((l) => ({ title: l.title, sec: l.duration_seconds ?? 0, free: l.is_free_preview })),
+        }))
+        .filter((ch) => ch.lessons.length),
     };
   });
 }

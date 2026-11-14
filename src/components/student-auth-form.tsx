@@ -37,10 +37,20 @@ function Field({ id, label, icon: Icon, children }: { id: string; label: string;
  * Đăng ký: họ tên + email + SĐT -> mã -> đặt mật khẩu. Họ tên/SĐT ghi vào profiles (RLS profiles_update_own).
  * (Email cũng có nút vào học, bấm đi qua /auth/confirm.)
  */
-export function StudentAuthForm({ mode }: { mode: "login" | "register" }) {
+export function StudentAuthForm({
+  mode,
+  embed = false,
+  from: fromProp,
+}: {
+  mode: "login" | "register";
+  /** Gắn trong trang khác (trang chủ): bỏ khung toàn trang + tiêu đề */
+  embed?: boolean;
+  /** Đăng nhập xong chuyển tới đâu (mặc định đọc ?from=) */
+  from?: string;
+}) {
   const params = useSearchParams();
   // Chỉ cho quay về đường dẫn trong web (chặn chuyển hướng ra trang lạ)
-  const rawFrom = params.get("from") || "/hoc";
+  const rawFrom = fromProp || params.get("from") || "/hoc";
   const from = rawFrom.startsWith("/") && !rawFrom.startsWith("//") ? rawFrom : "/hoc";
   const register = mode === "register";
   const [email, setEmail] = useState(params.get("email") ?? "");
@@ -198,8 +208,11 @@ export function StudentAuthForm({ mode }: { mode: "login" | "register" }) {
             : "Gửi mã qua email";
 
   return (
-    <div className="flex min-h-dvh items-center justify-center px-4 py-10">
-      <div className="w-full max-w-sm">
+    <div className={embed ? "w-full" : "flex min-h-dvh items-center justify-center px-4 py-10"}>
+      <div className={embed ? "w-full" : "w-full max-w-sm"}>
+        {embed ? (
+          step !== "email" && <p className="text-muted-foreground mb-3 text-center text-sm">{subtitle}</p>
+        ) : (
         <div className="mb-6 flex flex-col items-center text-center">
           <Link href={marketingHref("/")} className="bg-primary text-primary-foreground mb-4 flex size-12 items-center justify-center rounded-xl">
             <GraduationCap className="size-6" />
@@ -207,13 +220,14 @@ export function StudentAuthForm({ mode }: { mode: "login" | "register" }) {
           <h1 className="text-xl font-semibold tracking-tight">{register ? "Tạo tài khoản học viên" : "Học viện Lê Bá Tùng"}</h1>
           <p className="text-muted-foreground mt-1 text-sm">{subtitle}</p>
         </div>
+        )}
 
         <form
           onSubmit={(e) => {
             e.preventDefault();
             submit();
           }}
-          className="bg-card space-y-4 rounded-lg border p-6 shadow-sm"
+          className={embed ? "space-y-4" : "bg-card space-y-4 rounded-lg border p-6 shadow-sm"}
         >
           {step === "email" && (
             <>
@@ -306,7 +320,7 @@ export function StudentAuthForm({ mode }: { mode: "login" | "register" }) {
           )}
         </form>
 
-        {step === "email" && (
+        {step === "email" && !embed && (
           <p className="text-muted-foreground mt-5 text-center text-sm">
             {register ? "Đã có tài khoản? " : "Chưa có tài khoản? "}
             <Link href={otherHref} className="text-primary font-medium hover:underline">
