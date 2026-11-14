@@ -10,10 +10,9 @@ import { ConfirmButton } from "@/components/confirm-button";
 import { RichEditor } from "@/components/rich-editor";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import type { PostRow } from "@/lib/types";
+import { vnLocal } from "@/lib/blog-time";
 import { deletePost, updatePost } from "../actions";
 
-/** ISO -> "yyyy-mm-dd" theo giờ Việt Nam cho ô chọn ngày */
-const vnDate = (iso: string) => new Date(new Date(iso).getTime() + 7 * 3_600_000).toISOString().slice(0, 10);
 
 export default async function EditPostPage({ params }: PageProps<"/admin/blog/[id]">) {
   const { id } = await params;
@@ -57,7 +56,7 @@ export default async function EditPostPage({ params }: PageProps<"/admin/blog/[i
                 <input name="cover_url" defaultValue={p.cover_url ?? ""} className={inputClass} placeholder="https://..." />
               </Field>
               <Field label="Chuyên mục"><input name="category" defaultValue={p.category ?? ""} className={inputClass} placeholder="Facebook Marketing" /></Field>
-              <Field label="Ngày đăng" hint="Đặt ngày tương lai = hẹn ngày đăng"><input type="date" name="published_at" defaultValue={vnDate(p.published_at)} className={inputClass} /></Field>
+              <Field label="Ngày giờ đăng (giờ VN)" hint="Chọn ngày giờ tương lai + tích “Đăng công khai” = hẹn giờ đăng. Để trống = đăng ngay"><input type="datetime-local" name="published_at" defaultValue={vnLocal(p.published_at)} className={inputClass} /></Field>
               <label className="flex items-center gap-2 self-end pb-2 text-sm font-medium">
                 <input type="checkbox" name="is_published" defaultChecked={p.is_published} className="size-4" /> Đăng công khai
               </label>

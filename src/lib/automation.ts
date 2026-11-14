@@ -1,5 +1,6 @@
 import "server-only";
 import { createAdminSupabase } from "@/lib/supabase/admin";
+import { fromFriendly } from "@/lib/email-tokens";
 import { appBase, emailLayout, isEmailConfigured, notifyTelegram, publicBase, sendEmail, unsubscribeUrl } from "@/lib/email";
 
 /**
@@ -47,6 +48,17 @@ export type AutomationContext = Partial<{
 }>;
 
 const FREQUENCY_HOURS = 20;
+/**
+ * Trần email CHĂM SÓC mỗi ngày (giờ VN). Gói Resend miễn phí chỉ 100 email/ngày dùng chung với MÃ ĐĂNG NHẬP,
+ * nên mặc định 40 để luôn chừa chỗ cho mã đăng nhập + email giao dịch. Nâng gói Resend thì tăng AUTOMATION_DAILY_CAP.
+ */
+const DAILY_CAP = () => Math.max(0, Number(process.env.AUTOMATION_DAILY_CAP ?? 40));
+/** 0h hôm nay giờ VN (ISO) */
+function vnMidnight(d: Date) {
+  const x = new Date(d.getTime() + 7 * 3_600_000);
+  x.setUTCHours(0, 0, 0, 0);
+  return new Date(x.getTime() - 7 * 3_600_000);
+}
 const QUIET_START = 21; // 21:00 giờ VN
 const QUIET_END = 8; // 08:00 giờ VN
 
@@ -135,7 +147,8 @@ type Step = { id: string; position: number; delay_minutes: number; channel: "ema
 
 /** Thay biến {{ten}}, {{link_hoc}}… — giá trị được escape HTML */
 export function renderTemplate(tpl: string, vars: Record<string, string>) {
-  return tpl.replace(/\{\{\s*([a-z_]+)\s*\}\}/g, (_, k: string) => esc(vars[k] ?? ""));
+  // Chấp nhận cả chữ thân thiện [Tên khách]… (phòng khi lưu thẳng qua API)
+  return fromFriendly(tpl).replace(/\{\{\s*([a-z_]+)\s*\}\}/g, (_, k: string) => esc(vars[k] ?? ""));
 }
 
 export function templateVars(email: string, ctx: AutomationContext): Record<string, string> {
@@ -253,6 +266,14 @@ export async function runAutomation(limit = 40) {
   ]);
   const flowById = new Map((flows ?? []).map((f) => [f.id, f]));
   const blocked = new Set((suppressed ?? []).map((s) => s.email));
+  // Đã gửi bao nhiêu email chăm sóc hôm nay (tính cả giao dịch cho chắc — đều tốn hạn mức Resend)
+  const { count: sentToday } = await db
+    .from("automation_messages")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "sent")
+    .gte("sent_at", vnMidnight(now).toISOString())
+    .not("run_id", "is", null);
+  let usedToday = sentToday ?? 0;
 
   for (const run of runs as Run[]) {
     report.processed++;
@@ -278,6 +299,12 @@ export async function runAutomation(limit = 40) {
     }
 
     if (!step.transactional) {
+      // Hết trần email chăm sóc hôm nay -> dời sang 8h sáng mai (email giao dịch vẫn gửi)
+      if (step.channel === "email" && usedToday >= DAILY_CAP()) {
+        await set({ next_run_at: nextSendable(new Date(vnMidnight(now).getTime() + 86_400_000)).toISOString() });
+        report.deferred++;
+        continue;
+      }
       // Giờ yên lặng
       const sendable = nextSendable(now);
       if (sendable > now) {
@@ -309,6 +336,7 @@ export async function runAutomation(limit = 40) {
       report.skipped++;
     } else {
       ok = await deliverStep(step, run);
+      if (ok && step.channel === "email") usedToday++;
       if (ok) report.sent++;
       else report.failed++;
     }

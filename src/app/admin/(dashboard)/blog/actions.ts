@@ -5,6 +5,9 @@ import { redirect } from "next/navigation";
 import { assertAdmin } from "@/lib/admin-guard";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import { slugify } from "@/lib/utils";
+import { publishTime } from "@/lib/blog-time";
+import { MISSING_FACT_MARK } from "@/lib/blog-approve";
+import { announceDuePosts } from "@/lib/blog-publish";
 
 const str = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
 const optStr = (f: FormData, k: string) => str(f, k) || null;
@@ -27,23 +30,6 @@ function cleanHtml(html: string) {
     .replace(/<p>(\s|&nbsp;|<br\s*\/?>)*<\/p>/gi, "")
     .replace(/\u0000LD(\d+)\u0000/g, (_, i: string) => ld[Number(i)])
     .trim();
-}
-
-/** ISO -> "yyyy-mm-dd" theo giờ Việt Nam */
-const vnDate = (d: Date) => new Date(d.getTime() + 7 * 3_600_000).toISOString().slice(0, 10);
-
-/**
- * Ô ngày chỉ có ngày, không có giờ:
- *  - không đổi ngày  -> giữ nguyên giờ đăng cũ
- *  - chọn hôm nay    -> đăng ngay bây giờ (nếu gán 8h sáng thì trước 8h bài bị ẩn như hẹn giờ)
- *  - ngày khác       -> 8h sáng ngày đó (ngày tương lai = hẹn giờ đăng)
- */
-function publishTime(date: string, original: string) {
-  const now = new Date();
-  if (!date) return now.toISOString();
-  if (original && date === vnDate(new Date(original))) return original;
-  if (date === vnDate(now)) return now.toISOString();
-  return new Date(`${date}T08:00:00+07:00`).toISOString();
 }
 
 function refresh(id?: string, path?: string) {
@@ -98,4 +84,47 @@ export async function deletePost(form: FormData) {
   await createAdminSupabase().from("posts").delete().eq("id", str(form, "id"));
   refresh();
   redirect("/admin/blog");
+}
+
+/**
+ * Nút "Duyệt đăng" ngay ở danh sách bài nháp.
+ * Ô giờ để trống: bài đã có giờ hẹn (lịch tuần của blog-auto) thì giữ giờ hẹn, không thì đăng ngay.
+ */
+export async function approveFromList(form: FormData) {
+  await assertAdmin();
+  const id = str(form, "id");
+  const db = createAdminSupabase();
+  const { data: post } = await db.from("posts").select("id, kind, slug, content_html, published_at").eq("id", id).single();
+  if (!post) throw new Error("Không thấy bài");
+  // Bài còn chỗ AI đánh dấu thiếu số liệu thật -> không cho đăng, mở bài ra sửa
+  if ((post.content_html ?? "").includes(MISSING_FACT_MARK)) redirect(`/admin/blog?loi=thieu-so&bai=${id}`);
+
+  const now = new Date();
+  const chosen = str(form, "when");
+  const when = chosen
+    ? publishTime(chosen, post.published_at)
+    : post.published_at && new Date(post.published_at) > now
+      ? post.published_at
+      : now.toISOString();
+  const { error } = await db.from("posts").update({ is_published: true, published_at: when, updated_at: now.toISOString() }).eq("id", id);
+  if (error) throw new Error(error.message);
+  refresh(id, post.kind === "page" ? `/p/${post.slug}` : `/blog/${post.slug}`);
+  // Đăng ngay -> báo IndexNow + Telegram luôn (bài hẹn giờ thì cron 5 phút lo khi tới giờ)
+  if (new Date(when) <= now) await announceDuePosts().catch((e) => console.error("announce", e));
+}
+
+/** Đổi giờ hẹn / gỡ bài về nháp ngay ở danh sách */
+export async function reschedulePost(form: FormData) {
+  await assertAdmin();
+  const id = str(form, "id");
+  const db = createAdminSupabase();
+  const { data: post } = await db.from("posts").select("id, kind, slug, published_at").eq("id", id).single();
+  if (!post) throw new Error("Không thấy bài");
+  const patch =
+    form.get("unpublish") === "1"
+      ? { is_published: false }
+      : { published_at: publishTime(str(form, "when"), post.published_at) };
+  const { error } = await db.from("posts").update({ ...patch, updated_at: new Date().toISOString() }).eq("id", id);
+  if (error) throw new Error(error.message);
+  refresh(id, post.kind === "page" ? `/p/${post.slug}` : `/blog/${post.slug}`);
 }

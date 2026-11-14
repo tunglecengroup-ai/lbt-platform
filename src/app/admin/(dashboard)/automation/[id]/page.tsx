@@ -7,6 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge, Dot } from "@/components/ui/badge";
 import { Field, inputClass } from "@/components/ui/field";
+import { EmailEditor } from "@/components/email-editor";
+import { LINK_TOKENS, TEXT_TOKENS, toFriendly } from "@/lib/email-tokens";
 import { ConfirmButton } from "@/components/confirm-button";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import { TRIGGER_LABEL, type Trigger } from "@/lib/automation";
@@ -16,7 +18,6 @@ import { TestForm } from "./test-form";
 
 export const dynamic = "force-dynamic";
 
-const VARS = ["ten", "email", "khoa_hoc", "link_hoc", "link_chung_nhan", "link_trang_chu", "link_khoa_hoc", "link_thanh_vien", "link_don_hang", "ma_don", "so_tien", "ngay_het_han", "goi_thanh_vien"];
 
 function delayParts(min: number) {
   if (min > 0 && min % 1440 === 0) return { value: min / 1440, unit: "ngay" };
@@ -42,10 +43,14 @@ function StepForm({ flowId, step, index }: { flowId: string; step?: Step; index:
           </select>
         </div>
       </Field>
-      <Field label="Tiêu đề email"><input name="subject" defaultValue={step?.subject ?? ""} className={inputClass} /></Field>
-      <Field label="Nội dung (HTML đơn giản: <p>, <b>, <a href>)" className="sm:col-span-2">
-        <textarea name="body" rows={7} defaultValue={step?.body ?? "<p>Chào {{ten}},</p>\n<p></p>"} className={`${inputClass} h-auto py-2 font-mono text-xs`} />
+      <Field label="Tiêu đề email" hint="Gõ [Tên khách], [Tên khóa học]… để tự điền theo từng người">
+        <input name="subject" defaultValue={toFriendly(step?.subject ?? "")} className={inputClass} />
       </Field>
+      <div className="sm:col-span-2">
+        <p className="mb-1.5 text-sm font-medium">Nội dung email</p>
+        <EmailEditor name="body" defaultValue={toFriendly(step?.body ?? "<p>Chào {{ten}},</p><p></p>")} />
+        <p className="text-muted-foreground mt-1 text-xs">Viết như thư bình thường. Tên khách, tên khóa học… chèn bằng ô “Chèn thông tin khách”; link vào học, link thanh toán… chèn bằng ô “Chèn link có sẵn”.</p>
+      </div>
       <div className="flex flex-wrap items-center gap-4 text-sm sm:col-span-2">
         <select name="channel" defaultValue={step?.channel ?? "email"} className={`${inputClass} w-auto`}>
           <option value="email">Gửi email cho khách</option>
@@ -142,12 +147,15 @@ export default async function FlowPage({ params }: PageProps<"/admin/automation/
             <Card>
               <CardHeader>
                 <div>
-                  <CardTitle>Biến cá nhân hóa</CardTitle>
-                  <CardDescription>Gõ trong tiêu đề/nội dung, hệ thống tự thay khi gửi.</CardDescription>
+                  <CardTitle>Tự điền theo từng khách</CardTitle>
+                  <CardDescription>Hệ thống thay bằng thông tin thật của từng người khi gửi.</CardDescription>
                 </div>
               </CardHeader>
-              <CardContent className="flex flex-wrap gap-1.5">
-                {VARS.map((v) => <code key={v} className="bg-muted rounded px-1.5 py-0.5 text-xs">{`{{${v}}}`}</code>)}
+              <CardContent className="space-y-3 text-xs">
+                <div className="flex flex-wrap gap-1.5">
+                  {TEXT_TOKENS.map((t) => <span key={t.key} className="bg-muted rounded px-1.5 py-0.5">[{t.label}]</span>)}
+                </div>
+                <p className="text-muted-foreground">Link có sẵn: {LINK_TOKENS.map((t) => t.label).join(" · ")}.</p>
               </CardContent>
             </Card>
 

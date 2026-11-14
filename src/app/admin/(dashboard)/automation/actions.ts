@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cleanEmailHtml, fromFriendly } from "@/lib/email-tokens";
 import { assertAdmin } from "@/lib/admin-guard";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import { deliverStep } from "@/lib/automation";
@@ -41,8 +42,9 @@ export async function saveStep(form: FormData) {
   const row = {
     delay_minutes: toMinutes(str(form, "delay"), str(form, "unit")),
     channel: form.get("channel") === "telegram" ? "telegram" : "email",
-    subject: str(form, "subject") || null,
-    body: String(form.get("body") ?? ""),
+    // Chữ thân thiện [Tên khách]… -> mã {{ten}}…; lọc rác khi dán từ Word/Gmail
+    subject: fromFriendly(str(form, "subject")) || null,
+    body: fromFriendly(cleanEmailHtml(String(form.get("body") ?? ""))),
     transactional: form.get("transactional") === "on",
     is_active: form.get("is_active") === "on",
   };
