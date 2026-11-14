@@ -10,8 +10,6 @@ import { listFeaturedReviews, listPublishedPosts } from "@/lib/content";
 import { formatVND } from "@/lib/utils";
 import { AUTHOR, SOCIALS, socialName, TRIAL_VIDEO, TRIAL_VIDEO_META, learnHref, marketingHref, youtubeIdFrom } from "@/lib/site";
 import { JsonLd } from "@/components/json-ld";
-import { TrialTabs } from "@/components/trial-tabs";
-import { listTrialCourses } from "@/lib/trial-courses";
 import { faqLd, orgId, personId } from "@/lib/schema";
 
 // Lưu sẵn trên CDN cho nhanh; tự làm mới tối đa 5 phút/lần, sửa trong Admin thì làm mới ngay.
@@ -40,9 +38,8 @@ const perks = [
 ];
 
 export default async function HomePage() {
-  const [courses, trials, reviews, posts] = await Promise.all([
+  const [courses, reviews, posts] = await Promise.all([
     listPublishedCourses(),
-    listTrialCourses(),
     listFeaturedReviews(),
     listPublishedPosts(3),
   ]);
@@ -76,16 +73,12 @@ export default async function HomePage() {
             <PlayCircle className="size-3.5" /> Học thử miễn phí
           </span>
           <h1 className="mx-auto mt-4 max-w-3xl text-3xl font-bold tracking-tight md:text-5xl">
-            {trials.length ? "Học thử miễn phí cùng Lê Bá Tùng" : "Học thử quảng cáo Facebook cùng Lê Bá Tùng"}
+            Học thử quảng cáo Facebook cùng Lê Bá Tùng
           </h1>
           <p className="text-muted-foreground mx-auto mt-4 max-w-2xl text-base md:text-lg">
-            {trials.length
-              ? "Học thật vài bài trong khóa trước khi quyết định — đăng ký tài khoản miễn phí là vào học thử ngay."
-              : "Xem ngay một bài học thật trong khóa — 10 năm chạy quảng cáo đúc kết thành từng bước làm theo được."}
+            Xem ngay một bài học thật trong khóa — 10 năm chạy quảng cáo đúc kết thành từng bước làm theo được.
           </p>
-          {trials.length > 0 && <TrialTabs courses={trials} registerBase={learnHref("/hoc/dang-ky")} loginBase={learnHref("/hoc/dang-nhap")} />}
 
-          {trials.length === 0 && (<>
           <div className="bg-card mx-auto mt-8 aspect-video w-full max-w-4xl overflow-hidden rounded-xl border shadow-lg">
             {trialId ? (
               <iframe
@@ -113,7 +106,6 @@ export default async function HomePage() {
               <Link href="#khoa-hoc">Xem các khóa học</Link>
             </Button>
           </div>
-          </>)}
           <p className="text-muted-foreground mt-4 text-sm">
             Đã có tài khoản? <Link href={learnHref("/hoc")} className="text-primary font-medium hover:underline">Vào học</Link>
             {" · "}
