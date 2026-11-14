@@ -24,6 +24,8 @@ type EventMap = {
   view_item: { item: TrackItem };
   begin_checkout: { item: TrackItem };
   sign_up: { method?: string };
+  /** Khách bấm nút nhắn tin (Messenger / Zalo) */
+  contact: { channel: "messenger" | "zalo" };
   purchase: { transactionId: string; value: number; item: TrackItem };
 };
 
@@ -31,6 +33,7 @@ const META: Record<keyof EventMap, string> = {
   view_item: "ViewContent",
   begin_checkout: "InitiateCheckout",
   sign_up: "CompleteRegistration",
+  contact: "Contact",
   purchase: "Purchase",
 };
 
@@ -44,6 +47,7 @@ export function track<K extends keyof EventMap>(event: K, data: EventMap[K]) {
     const params: Record<string, unknown> = { currency: "VND", value, items: gaItems };
     if (event === "purchase") params.transaction_id = (data as EventMap["purchase"]).transactionId;
     if (event === "sign_up") params.method = (data as EventMap["sign_up"]).method ?? "email";
+    if (event === "contact") { params.method = (data as EventMap["contact"]).channel; delete params.value; delete params.currency; }
     window.gtag("event", event, params);
     if (event === "purchase" && ADS_ID && ADS_PURCHASE_LABEL) {
       window.gtag("event", "conversion", { send_to: `${ADS_ID}/${ADS_PURCHASE_LABEL}`, value, currency: "VND", transaction_id: params.transaction_id });

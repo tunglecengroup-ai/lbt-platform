@@ -9,6 +9,7 @@ import { formatDuration, formatVND } from "@/lib/utils";
 import { AUTHOR, BRAND, SOCIALS, socialName, learnHref, marketingHref } from "@/lib/site";
 import { JsonLd } from "@/components/json-ld";
 import { HomeAuthPanel } from "@/components/home-auth-panel";
+import { ChatButtons } from "@/components/chat-buttons";
 import { listTrialCourses } from "@/lib/trial-courses";
 import { faqLd } from "@/lib/schema";
 
@@ -317,6 +318,7 @@ export default async function TrialLandingPage() {
       <footer className="border-t bg-[#0a0e1a] py-6 text-center text-xs text-white/60">
         © {new Date().getFullYear()} {BRAND.name} · <Link href="/" className="hover:text-white">Trang chủ</Link> · Hỗ trợ Zalo 0869 126 363
       </footer>
+      <ChatButtons />
     </main>
   );
 }
