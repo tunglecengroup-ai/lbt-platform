@@ -54,7 +54,7 @@ export async function createOrder(input: {
         await enqueueAutomation("order_pending", {
           email: order.customer_email ?? input.email,
           dedupeKey: `order:${order.id}`,
-          context: { ten: input.name, khoa_hoc: input.itemTitle, ma_don: order.code, order_id: order.id, so_tien: formatVND(order.amount_vnd) },
+          context: { ten: input.name, khoa_hoc: input.itemTitle, course_id: input.courseId ?? undefined, ma_don: order.code, order_id: order.id, so_tien: formatVND(order.amount_vnd) },
         });
       }
       return order;
@@ -223,7 +223,7 @@ export async function fulfillOrder(orderId: string, method: string, txRef?: stri
       userId,
       dedupeKey: `paid:${order.id}`,
       context: {
-        ten: order.customer_name ?? undefined, khoa_hoc: itemTitle, course_slug: courseSlug,
+        ten: order.customer_name ?? undefined, khoa_hoc: itemTitle, course_slug: courseSlug, course_id: order.course_id ?? undefined,
         ma_don: order.code, order_id: order.id, so_tien: formatVND(order.amount_vnd),
       },
     });

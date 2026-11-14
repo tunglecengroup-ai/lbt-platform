@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Clock, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowUp, Clock, Copy, Trash2, Users } from "lucide-react";
 import { Topbar, MobileHeading } from "@/components/topbar";
 import { PageBody } from "@/components/ui/page";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,7 +13,11 @@ import { ConfirmButton } from "@/components/confirm-button";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import { TRIGGER_LABEL, type Trigger } from "@/lib/automation";
 import { timeAgo } from "@/lib/utils";
-import { deleteStep, saveFlow, saveStep, toggleFlow } from "../actions";
+import { deleteStep, saveStep, toggleFlow } from "../actions";
+import { deleteFlow, duplicateFlow, moveStep, saveFlowSettings } from "../campaign-actions";
+import { SEGMENT_LABEL, segmentRecipients, type Segment, type SegmentType } from "@/lib/automation-segments";
+import { CHANNELS, type Channel } from "@/lib/channels";
+import { BroadcastForm } from "./broadcast-form";
 import { TestForm } from "./test-form";
 
 export const dynamic = "force-dynamic";
@@ -77,14 +81,19 @@ export default async function FlowPage({ params }: PageProps<"/admin/automation/
     db.from("automation_messages").select("id, email, subject, status, error, sent_at, opened_at, clicked_at, step_id").eq("flow_id", id).order("sent_at", { ascending: false }).limit(40),
   ]);
   const runCount = (s: string) => (runs ?? []).filter((r) => r.status === s).length;
+  const { data: courses } = await db.from("courses").select("id, title").order("position");
+  const broadcast = flow.kind === "broadcast";
+  const segment = (flow.segment ?? {}) as Segment;
+  const audience = broadcast && segment.type ? await segmentRecipients(segment) : [];
+  const courseIds = (flow.course_ids ?? []) as string[];
 
   return (
     <>
-      <Topbar title={flow.name} subtitle={`Kích hoạt: ${TRIGGER_LABEL[flow.trigger as Trigger] ?? flow.trigger}`} />
+      <Topbar title={flow.name} subtitle={broadcast ? "Chiến dịch gửi theo nhóm khách" : `Kích hoạt: ${TRIGGER_LABEL[flow.trigger as Trigger] ?? flow.trigger}`} />
       <PageBody>
         <MobileHeading title={flow.name} />
         <Link href="/admin/automation" className="text-muted-foreground hover:text-foreground mb-4 inline-flex items-center gap-1 text-sm">
-          <ArrowLeft className="size-4" /> Tất cả kịch bản
+          <ArrowLeft className="size-4" /> Tất cả chiến dịch
         </Link>
 
         <div className="grid gap-6 xl:grid-cols-[1fr_340px]">
@@ -98,11 +107,21 @@ export default async function FlowPage({ params }: PageProps<"/admin/automation/
                     {s.transactional && <Badge tone="info">Giao dịch</Badge>}
                     {!s.is_active && <Badge tone="warning">Đang tắt</Badge>}
                   </CardTitle>
+                  <div className="flex items-center gap-1">
+                  <form action={moveStep}>
+                    <input type="hidden" name="id" value={s.id} /><input type="hidden" name="flow_id" value={id} /><input type="hidden" name="dir" value="up" />
+                    <Button variant="ghost" size="sm" disabled={i === 0} aria-label="Lên"><ArrowUp className="size-4" /></Button>
+                  </form>
+                  <form action={moveStep}>
+                    <input type="hidden" name="id" value={s.id} /><input type="hidden" name="flow_id" value={id} /><input type="hidden" name="dir" value="down" />
+                    <Button variant="ghost" size="sm" disabled={i === (steps ?? []).length - 1} aria-label="Xuống"><ArrowDown className="size-4" /></Button>
+                  </form>
                   <form action={deleteStep}>
                     <input type="hidden" name="id" value={s.id} />
                     <input type="hidden" name="flow_id" value={id} />
                     <ConfirmButton variant="ghost" size="sm" className="text-danger" message="Xóa bước này?"><Trash2 className="size-4" /></ConfirmButton>
                   </form>
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <StepForm flowId={id} step={s} index={i} />
@@ -120,22 +139,88 @@ export default async function FlowPage({ params }: PageProps<"/admin/automation/
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  Kịch bản <Badge tone={flow.is_active ? "success" : "neutral"}><Dot /> {flow.is_active ? "Đang chạy" : "Tắt"}</Badge>
+                  Chiến dịch <Badge tone={flow.is_active ? "success" : "neutral"}><Dot /> {flow.is_active ? "Đang chạy" : "Tắt"}</Badge>
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <form action={saveFlow} className="space-y-3">
+                <form action={saveFlowSettings} className="space-y-3">
                   <input type="hidden" name="id" value={flow.id} />
-                  <Field label="Tên"><input name="name" defaultValue={flow.name} className={inputClass} /></Field>
-                  <Field label="Mô tả"><textarea name="description" rows={3} defaultValue={flow.description ?? ""} className={`${inputClass} h-auto py-2`} /></Field>
-                  <Button type="submit" variant="outline" size="sm">Lưu</Button>
+                  <Field label="Tên chiến dịch"><input name="name" defaultValue={flow.name} className={inputClass} /></Field>
+                  <Field label="Mô tả"><textarea name="description" rows={2} defaultValue={flow.description ?? ""} className={`${inputClass} h-auto py-2`} /></Field>
+                  {broadcast ? (
+                    <>
+                      <Field label="Gửi cho nhóm khách">
+                        <select name="segment_type" defaultValue={segment.type ?? "students"} className={inputClass}>
+                          {Object.entries(SEGMENT_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                        </select>
+                      </Field>
+                      <Field label="Khóa (nếu chọn nhóm theo khóa)">
+                        <select name="segment_course" defaultValue={segment.course_id ?? ""} className={inputClass}>
+                          <option value="">—</option>
+                          {(courses ?? []).map((c) => <option key={c.id} value={c.id}>{c.title}</option>)}
+                        </select>
+                      </Field>
+                      <Field label="Kênh (nếu chọn nhóm theo kênh)">
+                        <select name="segment_channel" defaultValue={segment.channel ?? ""} className={inputClass}>
+                          <option value="">—</option>
+                          {(Object.keys(CHANNELS) as Channel[]).map((c) => <option key={c} value={c}>{CHANNELS[c].label}</option>)}
+                        </select>
+                      </Field>
+                      <Field label="Đơn chưa trả trong bao nhiêu ngày" hint="Chỉ dùng cho nhóm khách tạo đơn chưa thanh toán">
+                        <input name="segment_days" type="number" min={1} max={365} defaultValue={segment.days ?? 30} className={inputClass} />
+                      </Field>
+                    </>
+                  ) : (
+                    <>
+                      <Field label="Sự kiện kích hoạt">
+                        <select name="trigger" defaultValue={flow.trigger} className={inputClass}>
+                          {Object.entries(TRIGGER_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                        </select>
+                      </Field>
+                      <div>
+                        <p className="mb-1.5 text-sm font-medium">Chỉ áp dụng cho khóa</p>
+                        <p className="text-muted-foreground mb-1.5 text-xs">Không tích khóa nào = áp dụng mọi khóa.</p>
+                        <div className="space-y-1">
+                          {(courses ?? []).map((c) => (
+                            <label key={c.id} className="flex items-center gap-2 text-sm"><input type="checkbox" name="course_ids" value={c.id} defaultChecked={courseIds.includes(c.id)} className="size-4" /> {c.title}</label>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                  <Field label="Tự dừng chuỗi khi">
+                    <select name="goal" defaultValue={flow.goal ?? ""} className={inputClass}>
+                      <option value="">Không tự dừng (gửi hết các bước)</option>
+                      <option value="enrolled">Khách mua / được mở khóa học</option>
+                      <option value="order_paid">Đơn được thanh toán</option>
+                      <option value="active_again">Học viên quay lại học</option>
+                    </select>
+                  </Field>
+                  <Button type="submit" variant="outline" size="sm">Lưu cài đặt</Button>
                 </form>
                 <form action={toggleFlow}>
                   <input type="hidden" name="id" value={flow.id} />
                   <input type="hidden" name="active" value={flow.is_active ? "0" : "1"} />
-                  <Button type="submit" className="w-full" variant={flow.is_active ? "outline" : "primary"}>{flow.is_active ? "Tắt kịch bản" : "Bật kịch bản"}</Button>
+                  <Button type="submit" className="w-full" variant={flow.is_active ? "outline" : "primary"}>{flow.is_active ? "Tắt chiến dịch" : "Bật chiến dịch"}</Button>
                 </form>
-                {flow.goal && <p className="text-muted-foreground text-xs">Tự dừng khi: {{ enrolled: "khách mua/được mở khóa", order_paid: "đơn được thanh toán", active_again: "học viên học lại" }[flow.goal as string] ?? flow.goal}.</p>}
+                {broadcast && (
+                  <div className="space-y-2 rounded-md border p-3">
+                    <p className="flex items-center gap-1.5 text-sm font-medium"><Users className="size-4" /> {segment.type ? SEGMENT_LABEL[segment.type as SegmentType] : "Chưa chọn nhóm"}: {audience.length} người</p>
+                    {flow.last_broadcast_at && <p className="text-muted-foreground text-xs">Lần gửi gần nhất: {timeAgo(flow.last_broadcast_at, new Date())} · {flow.last_broadcast_count ?? 0} người</p>}
+                    <BroadcastForm id={flow.id} count={audience.length} />
+                    <p className="text-muted-foreground text-xs">Mỗi người chỉ nhận chiến dịch 1 lần. Bấm lại sau này = chỉ gửi cho người mới vào nhóm. Lưu cài đặt trước khi gửi.</p>
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <form action={duplicateFlow}>
+                    <input type="hidden" name="id" value={flow.id} />
+                    <Button type="submit" size="sm" variant="ghost"><Copy className="size-4" /> Nhân bản</Button>
+                  </form>
+                  <form action={deleteFlow}>
+                    <input type="hidden" name="id" value={flow.id} />
+                    <ConfirmButton size="sm" variant="ghost" className="text-danger" message="Xóa hẳn chiến dịch này? Các bước, người đang chờ và lịch sử gửi cũng bị xóa. Không hoàn tác được."><Trash2 className="size-4" /> Xóa</ConfirmButton>
+                  </form>
+                </div>
                 <div className="grid grid-cols-3 gap-2 border-t pt-3 text-center text-sm">
                   <div><p className="font-semibold">{runCount("active")}</p><p className="text-muted-foreground text-xs">đang chờ</p></div>
                   <div><p className="font-semibold">{runCount("done")}</p><p className="text-muted-foreground text-xs">xong</p></div>

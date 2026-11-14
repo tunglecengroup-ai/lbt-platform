@@ -85,9 +85,12 @@ export async function enqueueAutomation(
 ) {
   try {
     const db = createAdminSupabase();
-    const { data: flows } = await db.from("automation_flows").select("id").eq("trigger", trigger).eq("is_active", true);
+    const { data: flows } = await db.from("automation_flows").select("id, course_ids").eq("trigger", trigger).eq("kind", "trigger").eq("is_active", true);
     if (!flows?.length) return;
     for (const f of flows) {
+      // Chiến dịch chỉ áp dụng cho 1 số khóa -> bỏ qua sự kiện của khóa khác
+      const only = (f.course_ids ?? []) as string[];
+      if (only.length && !(input.context?.course_id && only.includes(input.context.course_id))) continue;
       const { data: first } = await db
         .from("automation_steps")
         .select("delay_minutes")

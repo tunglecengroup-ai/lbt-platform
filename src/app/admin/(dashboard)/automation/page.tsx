@@ -11,6 +11,10 @@ import { TRIGGER_LABEL, type Trigger } from "@/lib/automation";
 import { isEmailConfigured } from "@/lib/email";
 import { timeAgo } from "@/lib/utils";
 import { toggleFlow } from "./actions";
+import { createFlow, deleteFlow, duplicateFlow } from "./campaign-actions";
+import { Field, inputClass } from "@/components/ui/field";
+import { ConfirmButton } from "@/components/confirm-button";
+import { Copy, Trash2, Users } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +25,7 @@ export default async function AutomationPage() {
   const nowMs = new Date().getTime();
   const since = new Date(nowMs - 30 * 86_400_000).toISOString();
   const [{ data: flows }, { data: steps }, { data: runs }, { data: msgs }, { count: suppressed }] = await Promise.all([
-    db.from("automation_flows").select("id, key, name, description, trigger, goal, is_active").order("created_at"),
+    db.from("automation_flows").select("id, key, name, description, trigger, goal, is_active, kind, last_broadcast_count").order("created_at"),
     db.from("automation_steps").select("flow_id, is_active"),
     db.from("automation_runs").select("flow_id, status").eq("status", "active"),
     db.from("automation_messages").select("id, flow_id, email, subject, status, error, sent_at, opened_at, clicked_at").gte("sent_at", since).order("sent_at", { ascending: false }).limit(2000),
@@ -31,17 +35,17 @@ export default async function AutomationPage() {
   const opened = sent.filter((m) => m.opened_at).length;
   const clicked = sent.filter((m) => m.clicked_at).length;
   const emailOk = isEmailConfigured();
-  const cronOk = !!process.env.CRON_SECRET;
+  const cronOk = !!(process.env.CRON_SECRET || process.env.APP_SESSION_SECRET);
   const tgOk = !!(process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_CHAT_ID);
 
   return (
     <>
-      <Topbar title="Automation" subtitle="Chuỗi email tự động chăm sóc học viên & khách hàng theo hành vi" />
+      <Topbar title="Automation" subtitle="Chiến dịch chăm sóc: tự chạy theo hành vi khách, hoặc gửi theo nhóm khách" />
       <PageBody>
         <MobileHeading title="Automation" />
 
         <div className="mb-6 grid grid-cols-2 gap-4 xl:grid-cols-4">
-          <StatCard label="Kịch bản đang chạy" value={`${(flows ?? []).filter((f) => f.is_active).length}/${flows?.length ?? 0}`} icon={Zap} />
+          <StatCard label="Chiến dịch đang chạy" value={`${(flows ?? []).filter((f) => f.is_active).length}/${flows?.length ?? 0}`} icon={Zap} />
           <StatCard label="Email đã gửi (30 ngày)" value={String(sent.length)} icon={Send} hint={`${(runs ?? []).length} người đang trong chuỗi`} />
           <StatCard label="Tỷ lệ mở" value={pct(opened, sent.length)} icon={Eye} hint="Apple Mail có thể làm số mở cao hơn thực tế" />
           <StatCard label="Tỷ lệ bấm link" value={pct(clicked, sent.length)} icon={MousePointerClick} hint={`${suppressed ?? 0} người đã hủy nhận`} />
@@ -57,7 +61,7 @@ export default async function AutomationPage() {
           <CardContent className="grid gap-3 text-sm sm:grid-cols-3">
             {[
               { ok: emailOk, label: "Gửi email (Resend)", hint: "RESEND_API_KEY — gói miễn phí 100 email/ngày" },
-              { ok: cronOk, label: "Lịch chạy 15 phút", hint: "CRON_SECRET" },
+              { ok: cronOk, label: "Lịch chạy 5 phút", hint: "CRON_SECRET (hoặc tự suy từ APP_SESSION_SECRET)" },
               { ok: tgOk, label: "Báo Telegram (tuỳ chọn)", hint: "TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID" },
             ].map((x) => (
               <div key={x.label} className="flex gap-2">
@@ -68,6 +72,27 @@ export default async function AutomationPage() {
                 </div>
               </div>
             ))}
+          </CardContent>
+        </Card>
+
+        <Card className="mb-6">
+          <CardHeader><div><CardTitle>Tạo chiến dịch mới</CardTitle><CardDescription>Tạo xong soạn từng bước (email / báo Telegram), kiểm tra rồi mới bật.</CardDescription></div></CardHeader>
+          <CardContent>
+            <form action={createFlow} className="grid gap-3 sm:grid-cols-[1fr_220px_240px_auto] sm:items-end">
+              <Field label="Tên chiến dịch"><input name="name" required className={inputClass} placeholder="vd: Mời học viên cơ bản lên khóa chuyên sâu" /></Field>
+              <Field label="Loại">
+                <select name="kind" className={inputClass} defaultValue="trigger">
+                  <option value="trigger">Tự chạy theo sự kiện</option>
+                  <option value="broadcast">Gửi theo nhóm khách</option>
+                </select>
+              </Field>
+              <Field label="Sự kiện kích hoạt" hint="Chỉ dùng cho loại tự chạy">
+                <select name="trigger" className={inputClass} defaultValue="signup">
+                  {Object.entries(TRIGGER_LABEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                </select>
+              </Field>
+              <Button type="submit">Tạo</Button>
+            </form>
           </CardContent>
         </Card>
 
@@ -86,7 +111,13 @@ export default async function AutomationPage() {
                         <Link href={`/admin/automation/${f.id}`} className="font-semibold tracking-tight hover:underline">{f.name}</Link>
                         <Badge tone={f.is_active ? "success" : "neutral"}><Dot /> {f.is_active ? "Đang chạy" : "Tắt"}</Badge>
                       </div>
-                      <p className="text-muted-foreground mt-1 text-sm"><span className="font-medium">Kích hoạt:</span> {TRIGGER_LABEL[f.trigger as Trigger] ?? f.trigger}</p>
+                      <p className="text-muted-foreground mt-1 text-sm">
+                        {f.kind === "broadcast" ? (
+                          <span className="inline-flex items-center gap-1"><Users className="size-3.5" /> Gửi theo nhóm khách{f.last_broadcast_count != null ? ` · lần gần nhất ${f.last_broadcast_count} người` : ""}</span>
+                        ) : (
+                          <><span className="font-medium">Kích hoạt:</span> {TRIGGER_LABEL[f.trigger as Trigger] ?? f.trigger}</>
+                        )}
+                      </p>
                       {f.description && <p className="text-muted-foreground mt-1 text-xs">{f.description}</p>}
                     </div>
                   </div>
@@ -108,7 +139,15 @@ export default async function AutomationPage() {
                     <form action={toggleFlow}>
                       <input type="hidden" name="id" value={f.id} />
                       <input type="hidden" name="active" value={f.is_active ? "0" : "1"} />
-                      <Button type="submit" size="sm" variant={f.is_active ? "ghost" : "primary"}>{f.is_active ? "Tắt" : "Bật kịch bản"}</Button>
+                      <Button type="submit" size="sm" variant={f.is_active ? "ghost" : "primary"}>{f.is_active ? "Tắt" : "Bật"}</Button>
+                    </form>
+                    <form action={duplicateFlow} className="ml-auto">
+                      <input type="hidden" name="id" value={f.id} />
+                      <Button type="submit" size="sm" variant="ghost" aria-label="Nhân bản" title="Nhân bản"><Copy className="size-4" /></Button>
+                    </form>
+                    <form action={deleteFlow}>
+                      <input type="hidden" name="id" value={f.id} />
+                      <ConfirmButton size="sm" variant="ghost" className="text-danger" aria-label="Xóa" title="Xóa" message={`Xóa hẳn chiến dịch "${f.name}"? Các bước, người đang chờ và lịch sử gửi của chiến dịch này cũng bị xóa. Không hoàn tác được.`}><Trash2 className="size-4" /></ConfirmButton>
                     </form>
                   </div>
                 </CardContent>
