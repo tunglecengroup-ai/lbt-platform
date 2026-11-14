@@ -93,7 +93,7 @@ function AiChat({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="fixed bottom-4 left-4 z-[60] flex h-[min(75dvh,560px)] w-[min(calc(100vw-2rem),380px)] flex-col overflow-hidden rounded-2xl border bg-white text-gray-900 shadow-2xl">
+    <div className="fixed bottom-20 left-4 z-[60] flex h-[min(72dvh,560px)] sm:bottom-4 w-[min(calc(100vw-2rem),380px)] flex-col overflow-hidden rounded-2xl border bg-white text-gray-900 shadow-2xl">
       <div className="flex items-center gap-3 bg-gradient-to-r from-[#0f1424] to-[#1d2b55] px-4 py-3 text-white">
         <span className="flex size-9 items-center justify-center rounded-full bg-[#f5c451] text-black"><Bot className="size-5" /></span>
         <div className="min-w-0 flex-1">
