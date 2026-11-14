@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { timingSafeEqual } from "node:crypto";
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { runAutomation, scanTimeTriggers } from "@/lib/automation";
 import { syncAllMembers } from "@/lib/membership";
 import { announceDuePosts } from "@/lib/blog-publish";
@@ -10,8 +10,15 @@ import { announceDuePosts } from "@/lib/blog-publish";
  * - Mỗi lần: đưa bài blog hẹn giờ lên sóng (làm mới trang + IndexNow + Telegram), gửi các bước email đến hạn
  * - Lần chạy đầu mỗi giờ: quét sự kiện theo thời gian + mở khóa mới cho thành viên
  */
+/** Mã cron: CRON_SECRET nếu có, không thì tự suy ra từ APP_SESSION_SECRET (khỏi phải thêm biến trên Netlify) */
+function cronSecret() {
+  if (process.env.CRON_SECRET) return process.env.CRON_SECRET;
+  const base = process.env.APP_SESSION_SECRET;
+  return base ? createHmac("sha256", base).update("lbt-cron").digest("hex") : "";
+}
+
 function authorized(req: Request) {
-  const secret = process.env.CRON_SECRET;
+  const secret = cronSecret();
   if (!secret) return false;
   const got = Buffer.from((req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, ""));
   const want = Buffer.from(secret);
