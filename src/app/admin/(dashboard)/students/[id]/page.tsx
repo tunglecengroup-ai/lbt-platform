@@ -12,7 +12,8 @@ import { StatCard } from "@/components/ui/stat-card";
 import { ConfirmButton } from "@/components/confirm-button";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import { formatDate, formatDuration, timeAgo } from "@/lib/utils";
-import { deleteEnrollment, deleteStudent, restoreEnrollment, revokeEnrollment } from "../actions";
+import { deleteEnrollment, deleteStudent, restoreEnrollment, revokeEnrollment, updateEnrollmentExpiry } from "../actions";
+import { SaveButton } from "@/components/save-button";
 import { GrantPlanForm } from "./grant-plan-form";
 import { marketingHref } from "@/lib/site";
 import { AddCoursesForm } from "./add-courses-form";
@@ -55,6 +56,12 @@ export default async function StudentDetailPage({ params }: PageProps<"/admin/st
     e.status === "active" && (!e.expires_at || new Date(e.expires_at) > now);
 
   const watchedTotal = (progress ?? []).reduce((s, p) => s + (p.watched_seconds ?? 0), 0);
+  /** Giây đã xem của 1 bài, tối đa = thời lượng bài */
+  const watchedOf = (l: { id: string; duration_seconds: number | null }) =>
+    Math.min(progByLesson.get(l.id)?.watched_seconds ?? 0, l.duration_seconds && l.duration_seconds > 0 ? l.duration_seconds : Infinity);
+  const pctOf = (part: number, whole: number) => (whole > 0 ? Math.min(100, Math.round((part / whole) * 100)) : 0);
+  /** Ngày (YYYY-MM-DD theo giờ VN) cho ô chọn ngày */
+  const vnDay = (iso: string) => new Date(new Date(iso).getTime() + 7 * 3600_000).toISOString().slice(0, 10);
   const doneTotal = (progress ?? []).filter((p) => p.completed_at).length;
   const lastActive = ((progress ?? []) as ProgressRow[])
     .map((p) => p.updated_at || p.completed_at)
@@ -73,7 +80,9 @@ export default async function StudentDetailPage({ params }: PageProps<"/admin/st
     const chs = (chapters ?? [])
       .filter((c) => c.course_id === e.course_id)
       .map((c) => ({ ...c, lessons: ls.filter((l) => l.chapter_id === c.id) }));
-    return { ...e, title: courseTitle.get(e.course_id) ?? "Khóa đã xóa", total: ls.length, done, lastHere, chapters: chs };
+    const totalSec = ls.reduce((s, l) => s + (l.duration_seconds ?? 0), 0);
+    const watchedSec = ls.reduce((s, l) => s + watchedOf(l), 0);
+    return { ...e, title: courseTitle.get(e.course_id) ?? "Khóa đã xóa", total: ls.length, done, lastHere, chapters: chs, totalSec, watchedSec };
   });
 
   // Khóa có thể thêm: chưa ghi danh, hoặc đã khóa / hết hạn (thêm lại = mở lại với hạn mới)
@@ -128,7 +137,12 @@ export default async function StudentDetailPage({ params }: PageProps<"/admin/st
         <div className="mb-6 grid grid-cols-2 gap-4 xl:grid-cols-4">
           <StatCard label="Khóa đang học" value={String(courseViews.filter(isActive).length)} icon={BookOpen} hint={`${courseViews.length} khóa đã ghi danh`} />
           <StatCard label="Bài đã hoàn thành" value={String(doneTotal)} icon={Trophy} />
-          <StatCard label="Thời gian xem" value={formatDuration(watchedTotal)} icon={Clock} hint="tổng các bài" />
+          <StatCard
+            label="Thời gian xem"
+            value={formatDuration(watchedTotal)}
+            icon={Clock}
+            hint={`${pctOf(courseViews.reduce((s, c) => s + c.watchedSec, 0), courseViews.reduce((s, c) => s + c.totalSec, 0))}% tổng thời lượng các khóa`}
+          />
           <StatCard label="Học gần nhất" value={lastActive ? timeAgo(lastActive) : "Chưa học"} icon={PlayCircle} />
         </div>
 
@@ -188,10 +202,36 @@ export default async function StudentDetailPage({ params }: PageProps<"/admin/st
                     </div>
                   </CardHeader>
                   <CardContent className="pt-0">
-                    <div className="mb-3 flex items-center gap-3">
-                      <Progress value={pct} className="flex-1" />
-                      <span className="tabular text-sm font-medium">{c.done}/{c.total} bài · {pct}%</span>
+                    <div className="mb-3 space-y-2">
+                      <div className="flex items-center gap-3">
+                        <span className="text-muted-foreground w-24 shrink-0 text-xs">Bài hoàn thành</span>
+                        <Progress value={pct} className="flex-1" />
+                        <span className="tabular w-32 shrink-0 text-right text-sm font-medium">{c.done}/{c.total} bài · {pct}%</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-muted-foreground w-24 shrink-0 text-xs">Thời gian đã xem</span>
+                        <Progress value={pctOf(c.watchedSec, c.totalSec)} className="flex-1" />
+                        <span className="tabular w-32 shrink-0 text-right text-sm font-medium">
+                          {formatDuration(c.watchedSec)}/{formatDuration(c.totalSec)} · {pctOf(c.watchedSec, c.totalSec)}%
+                        </span>
+                      </div>
                     </div>
+
+                    {/* Thời hạn học: chọn ngày hoặc cộng nhanh */}
+                    <form action={updateEnrollmentExpiry} className="bg-muted/40 mb-3 flex flex-wrap items-end gap-2 rounded-lg p-3">
+                      <input type="hidden" name="id" value={c.id} />
+                      <label className="text-xs font-medium">
+                        <span className="text-muted-foreground mb-1 block">Hết hạn ngày (để trống = trọn đời)</span>
+                        <input type="date" name="expires_on" defaultValue={c.expires_at ? vnDay(c.expires_at) : ""} className="bg-background h-8 rounded-md border px-2 text-sm" />
+                      </label>
+                      <SaveButton size="sm">Lưu hạn</SaveButton>
+                      <span className="text-muted-foreground px-1 text-xs">hoặc cộng thêm</span>
+                      {[30, 90, 365].map((d) => (
+                        <Button key={d} type="submit" name="extend" value={d} variant="outline" size="sm">
+                          +{d === 365 ? "12 tháng" : `${d / 30} tháng`}
+                        </Button>
+                      ))}
+                    </form>
 
                     <details className="group">
                       <summary className="text-primary cursor-pointer text-sm font-medium select-none">
@@ -210,6 +250,7 @@ export default async function StudentDetailPage({ params }: PageProps<"/admin/st
                                 {ch.lessons.map((l) => {
                                   const p = progByLesson.get(l.id);
                                   const watched = p?.watched_seconds ?? 0;
+                                  const lp = pctOf(watchedOf(l), l.duration_seconds ?? 0);
                                   return (
                                     <li key={l.id} className="flex items-center gap-2 px-3 py-2 text-sm">
                                       {p?.completed_at ? (
@@ -220,6 +261,14 @@ export default async function StudentDetailPage({ params }: PageProps<"/admin/st
                                         <Circle className="text-muted-foreground/50 size-4 shrink-0" />
                                       )}
                                       <span className={`min-w-0 flex-1 truncate ${p?.completed_at || watched ? "" : "text-muted-foreground"}`}>{l.title}</span>
+                                      {watched > 0 && l.duration_seconds ? (
+                                        <span className="flex w-24 shrink-0 items-center gap-1.5">
+                                          <span className="bg-muted h-1.5 flex-1 overflow-hidden rounded-full">
+                                            <span className={`block h-full rounded-full ${lp >= 90 ? "bg-success" : "bg-warning"}`} style={{ width: `${lp}%` }} />
+                                          </span>
+                                          <span className="tabular w-8 text-right text-xs font-medium">{lp}%</span>
+                                        </span>
+                                      ) : null}
                                       <span className="text-muted-foreground shrink-0 text-xs">
                                         {p?.completed_at
                                           ? `Xong ${formatDate(p.completed_at)}`

@@ -15,6 +15,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MarkComplete } from "@/components/lesson-actions";
+import { LessonPlayer } from "@/components/lesson-player";
 import { formatDuration, cn } from "@/lib/utils";
 import { flatLessons, getLessonContent, getStudentCourse } from "@/lib/learning";
 import { marketingHref } from "@/lib/site";
@@ -47,13 +48,7 @@ export default async function LessonPage({ params }: PageProps<"/hoc/[slug]/[les
         <div className="min-w-0">
           <div className="relative aspect-video overflow-hidden rounded-xl bg-slate-950">
             {content.allowed && content.embedUrl ? (
-              <iframe
-                src={content.embedUrl}
-                title={lesson.title}
-                className="absolute inset-0 size-full"
-                allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
-                allowFullScreen
-              />
+              <LessonPlayer embedUrl={content.embedUrl} title={lesson.title} lessonId={lesson.id} />
             ) : (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 px-6 text-center">
                 {content.allowed ? (

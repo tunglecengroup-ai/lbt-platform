@@ -112,3 +112,33 @@ export async function deleteStudent(form: FormData) {
   revalidatePath("/admin/students", "layout");
   redirect("/admin/students?deleted=1");
 }
+
+/**
+ * Sửa thời hạn học 1 khóa của học viên.
+ * - extend = 30/90/365: cộng thêm số ngày tính từ hạn cũ (hoặc từ hôm nay nếu đã hết hạn)
+ * - không có extend: lấy ngày trong ô "expires_on" (YYYY-MM-DD, hết hạn cuối ngày giờ VN); để trống = học trọn đời
+ * Hạn mới ở tương lai thì tự mở lại quyền học (status active).
+ */
+export async function updateEnrollmentExpiry(form: FormData) {
+  await assertAdmin();
+  const id = String(form.get("id") ?? "");
+  const db = createAdminSupabase();
+  const { data: e } = await db.from("enrollments").select("expires_at").eq("id", id).maybeSingle();
+  if (!e) throw new Error("Không tìm thấy quyền học");
+
+  let expires: string | null;
+  const extend = Number(form.get("extend") ?? 0);
+  if (extend > 0) {
+    const base = e.expires_at && new Date(e.expires_at) > new Date() ? new Date(e.expires_at) : new Date();
+    expires = new Date(base.getTime() + extend * 86_400_000).toISOString();
+  } else {
+    const day = String(form.get("expires_on") ?? "").trim();
+    if (day && !/^\d{4}-\d{2}-\d{2}$/.test(day)) throw new Error("Ngày hết hạn chưa đúng");
+    expires = day ? new Date(`${day}T23:59:59+07:00`).toISOString() : null;
+  }
+  const patch: { expires_at: string | null; status?: string } = { expires_at: expires };
+  if (!expires || new Date(expires) > new Date()) patch.status = "active";
+  const { error } = await db.from("enrollments").update(patch).eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin/students", "layout");
+}
