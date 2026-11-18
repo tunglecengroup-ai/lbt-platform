@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { AI_MODEL, anthropic, isAiConfigured } from "@/lib/ai";
 import { CHOT_SALE_NAO } from "@/lib/chot-sale-nao";
+import { giaThanhChu, khoaHocGia } from "@/lib/chot-sale-gia";
 import { notifyTelegram } from "@/lib/email";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 
@@ -90,9 +91,10 @@ export async function POST(req: Request) {
   await captureLead(messages, trang);
 
   const today = new Date().toLocaleDateString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" });
+  const gia = giaThanhChu(await khoaHocGia().catch(() => []));
   const system: Anthropic.Beta.BetaTextBlockParam[] = [
     { type: "text", text: CHOT_SALE_NAO, cache_control: { type: "ephemeral" } },
-    { type: "text", text: `Hôm nay là ${today}. Kênh: WEBSITE.${trang ? ` Khách đang xem trang: ${trang}.` : ""}` },
+    { type: "text", text: `${gia}\n\nHôm nay là ${today}. Kênh: WEBSITE.${trang ? ` Khách đang xem trang: ${trang}.` : ""}` },
   ];
 
   let stream;

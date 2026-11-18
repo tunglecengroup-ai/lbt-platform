@@ -41,6 +41,17 @@ function Linkify({ text }: { text: string }) {
   );
 }
 
+/** Bong bóng "đang gõ..." (3 chấm nhảy) */
+function TypingDots() {
+  return (
+    <div className="flex w-fit items-center gap-1 rounded-2xl rounded-tl-sm bg-white px-3 py-3 shadow-sm" aria-label="Đang gõ">
+      {[0, 150, 300].map((d) => (
+        <span key={d} className="size-1.5 animate-bounce rounded-full bg-gray-400" style={{ animationDelay: `${d}ms` }} />
+      ))}
+    </div>
+  );
+}
+
 function AiChat({ onClose }: { onClose: () => void }) {
   const [msgs, setMsgs] = useState<Msg[]>(() => {
     try {
@@ -52,14 +63,15 @@ function AiChat({ onClose }: { onClose: () => void }) {
   });
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [typing, setTyping] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: "end" });
     try {
-      sessionStorage.setItem(STORE_KEY, JSON.stringify(msgs.slice(-20)));
+      sessionStorage.setItem(STORE_KEY, JSON.stringify(msgs.filter((m) => m.content).slice(-20)));
     } catch {}
-  }, [msgs]);
+  }, [msgs, typing]);
 
   async function ask(q: string) {
     const question = q.trim().slice(0, 800);
@@ -82,12 +94,27 @@ function AiChat({ onClose }: { onClose: () => void }) {
         const { done, value } = await reader.read();
         if (done) break;
         acc += dec.decode(value, { stream: true });
-        setMsgs([...history, { role: "assistant", content: acc }]);
       }
-      if (!acc.trim()) setMsgs([...history, { role: "assistant", content: "Em chưa trả lời được, anh/chị thử lại hoặc nhắn Fanpage nhé." }]);
+      const lines = acc.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+      if (!lines.length) {
+        setMsgs([...history, { role: "assistant", content: "Em chưa trả lời được, anh/chị thử lại hoặc nhắn Fanpage nhé." }]);
+        return;
+      }
+      // Hiện từng câu như người thật gõ: mỗi tin cách nhau 0,5–1 giây, giữa các tin có "đang gõ..."
+      let shown = "";
+      for (let i = 0; i < lines.length; i++) {
+        if (i > 0) {
+          setTyping(true);
+          await new Promise((r) => setTimeout(r, 500 + Math.random() * 500));
+          setTyping(false);
+        }
+        shown = shown ? `${shown}\n${lines[i]}` : lines[i];
+        setMsgs([...history, { role: "assistant", content: shown }]);
+      }
     } catch {
       setMsgs([...history, { role: "assistant", content: "Mất kết nối, anh/chị thử lại hoặc nhắn Fanpage nhé." }]);
     } finally {
+      setTyping(false);
       setBusy(false);
     }
   }
@@ -131,11 +158,10 @@ function AiChat({ onClose }: { onClose: () => void }) {
                 ))}
             </div>
           ) : (
-            <div key={i} className="w-fit max-w-[85%] rounded-2xl rounded-tl-sm bg-white px-3 py-2 shadow-sm">
-              <LoaderCircle className="size-4 animate-spin text-gray-400" />
-            </div>
+            <TypingDots key={i} />
           ),
         )}
+        {typing && <TypingDots />}
         <div ref={endRef} />
       </div>
 
