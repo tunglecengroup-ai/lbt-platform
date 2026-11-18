@@ -29,7 +29,7 @@ function delayParts(min: number) {
   return { value: min, unit: "phut" };
 }
 
-type Step = { id: string; position: number; delay_minutes: number; channel: string; subject: string | null; body: string; transactional: boolean; is_active: boolean };
+type Step = { id: string; position: number; delay_minutes: number; channel: string; subject: string | null; body: string; transactional: boolean; is_active: boolean; zns_template_id: string | null };
 
 function StepForm({ flowId, step, index }: { flowId: string; step?: Step; index: number }) {
   const d = delayParts(step?.delay_minutes ?? 1440);
@@ -47,19 +47,21 @@ function StepForm({ flowId, step, index }: { flowId: string; step?: Step; index:
           </select>
         </div>
       </Field>
-      <Field label="Tiêu đề email" hint="Gõ [Tên khách], [Tên khóa học]… để tự điền theo từng người">
+      <Field label="Tiêu đề email (bước Zalo: tên gọi nội bộ)" hint="Gõ [Tên khách], [Tên khóa học]… để tự điền theo từng người">
         <input name="subject" defaultValue={toFriendly(step?.subject ?? "")} className={inputClass} />
       </Field>
       <div className="sm:col-span-2">
-        <p className="mb-1.5 text-sm font-medium">Nội dung email</p>
+        <p className="mb-1.5 text-sm font-medium">Nội dung email / tin Zalo</p>
         <EmailEditor name="body" defaultValue={toFriendly(step?.body ?? "<p>Chào {{ten}},</p><p></p>")} />
-        <p className="text-muted-foreground mt-1 text-xs">Viết như thư bình thường. Tên khách, tên khóa học… chèn bằng ô “Chèn thông tin khách”; link vào học, link thanh toán… chèn bằng ô “Chèn link có sẵn”.</p>
+        <p className="text-muted-foreground mt-1 text-xs">Bước Zalo: gửi dạng chữ thường (định dạng đậm/nghiêng bị bỏ), link dán thẳng vào nội dung, viết ngắn 2–4 câu như nhắn tin. Viết như thư bình thường. Tên khách, tên khóa học… chèn bằng ô “Chèn thông tin khách”; link vào học, link thanh toán… chèn bằng ô “Chèn link có sẵn”.</p>
       </div>
       <div className="flex flex-wrap items-center gap-4 text-sm sm:col-span-2">
         <select name="channel" defaultValue={step?.channel ?? "email"} className={`${inputClass} w-auto`}>
           <option value="email">Gửi email cho khách</option>
+          <option value="zalo">Nhắn Zalo cho khách</option>
           <option value="telegram">Báo Telegram cho anh</option>
         </select>
+        <input name="zns_template_id" defaultValue={step?.zns_template_id ?? ""} placeholder="Mã mẫu ZNS (nếu có)" title="Chỉ dùng cho bước Zalo. Có mã mẫu đã duyệt + Zalo OA đã kết nối thì gửi ZNS chính thức; bỏ trống thì gửi bằng Zalo cá nhân qua tiện ích Chrome." className={`${inputClass} w-44`} />
         <label className="flex items-center gap-2" title="Email giao dịch: gửi cả ban đêm, bỏ qua giới hạn tần suất, không có link hủy nhận">
           <input type="checkbox" name="transactional" defaultChecked={step?.transactional} className="size-4" /> Email giao dịch
         </label>
@@ -78,7 +80,7 @@ export default async function FlowPage({ params }: PageProps<"/admin/automation/
   const [{ data: steps }, { data: runs }, { data: msgs }] = await Promise.all([
     db.from("automation_steps").select("*").eq("flow_id", id).order("position"),
     db.from("automation_runs").select("status").eq("flow_id", id),
-    db.from("automation_messages").select("id, email, subject, status, error, sent_at, opened_at, clicked_at, step_id").eq("flow_id", id).order("sent_at", { ascending: false }).limit(40),
+    db.from("automation_messages").select("id, email, phone, channel, subject, status, error, sent_at, opened_at, clicked_at, step_id").eq("flow_id", id).order("sent_at", { ascending: false }).limit(40),
   ]);
   const runCount = (s: string) => (runs ?? []).filter((r) => r.status === s).length;
   const { data: courses } = await db.from("courses").select("id, title").order("position");
@@ -104,6 +106,7 @@ export default async function FlowPage({ params }: PageProps<"/admin/automation/
                   <CardTitle className="flex flex-wrap items-center gap-2">
                     Bước {i + 1}
                     <Badge tone="neutral"><Clock className="size-3" /> {s.delay_minutes === 0 ? "ngay" : `sau ${delayParts(s.delay_minutes).value} ${{ phut: "phút", gio: "giờ", ngay: "ngày" }[delayParts(s.delay_minutes).unit]}`}</Badge>
+                    {s.channel === "zalo" && <Badge tone="success">Zalo{s.zns_template_id ? " · ZNS" : ""}</Badge>}
                     {s.transactional && <Badge tone="info">Giao dịch</Badge>}
                     {!s.is_active && <Badge tone="warning">Đang tắt</Badge>}
                   </CardTitle>
@@ -125,7 +128,7 @@ export default async function FlowPage({ params }: PageProps<"/admin/automation/
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <StepForm flowId={id} step={s} index={i} />
-                  <div className="border-t pt-3"><TestForm stepId={s.id} /></div>
+                  <div className="border-t pt-3"><TestForm stepId={s.id} zalo={s.channel === "zalo"} /></div>
                 </CardContent>
               </Card>
             ))}
@@ -193,6 +196,7 @@ export default async function FlowPage({ params }: PageProps<"/admin/automation/
                       <option value="">Không tự dừng (gửi hết các bước)</option>
                       <option value="enrolled">Khách mua / được mở khóa học</option>
                       <option value="order_paid">Đơn được thanh toán</option>
+                      <option value="paid_any">Khách đã trả tiền bất kỳ đơn/khóa nào (theo email hoặc SĐT)</option>
                       <option value="active_again">Học viên quay lại học</option>
                     </select>
                   </Field>
@@ -250,9 +254,9 @@ export default async function FlowPage({ params }: PageProps<"/admin/automation/
                 {(msgs ?? []).length === 0 && <li className="text-muted-foreground px-5 py-4">Chưa gửi</li>}
                 {(msgs ?? []).map((m) => (
                   <li key={m.id} className="px-5 py-2">
-                    <p className="truncate font-medium">{m.email}</p>
+                    <p className="truncate font-medium">{m.channel === "zalo" ? `Zalo ${m.phone ?? ""}` : m.email}</p>
                     <p className="text-muted-foreground">
-                      {timeAgo(m.sent_at)} · {m.status === "sent" ? (m.clicked_at ? "đã bấm" : m.opened_at ? "đã mở" : "đã gửi") : <span className="text-danger">{m.error ?? m.status}</span>}
+                      {timeAgo(m.sent_at)} · {m.status === "queued" ? "chờ tiện ích Zalo gửi" : m.status === "sent" ? (m.clicked_at ? "đã bấm" : m.opened_at ? "đã mở" : "đã gửi") : <span className="text-danger">{m.error ?? m.status}</span>}
                     </p>
                   </li>
                 ))}

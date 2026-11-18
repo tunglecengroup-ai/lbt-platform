@@ -53,6 +53,7 @@ export async function createOrder(input: {
       if (order.amount_vnd > 0) {
         await enqueueAutomation("order_pending", {
           email: order.customer_email ?? input.email,
+          phone: order.customer_phone ?? input.phone,
           dedupeKey: `order:${order.id}`,
           context: { ten: input.name, khoa_hoc: input.itemTitle, course_id: input.courseId ?? undefined, ma_don: order.code, order_id: order.id, so_tien: formatVND(order.amount_vnd) },
         });
@@ -218,6 +219,8 @@ export async function fulfillOrder(orderId: string, method: string, txRef?: stri
       itemId: order.plan_id ?? order.course_id ?? "unknown", itemName: itemTitle,
     });
     await stopAutomation("order_paid", { orderId: order.id });
+    // Khách đã trả tiền -> dừng chuỗi chăm sóc lead ladi (email + Zalo) của cùng email/SĐT
+    await stopAutomation("paid_any", { email: order.customer_email, phone: order.customer_phone });
     await enqueueAutomation("order_paid", {
       email: order.customer_email!,
       userId,

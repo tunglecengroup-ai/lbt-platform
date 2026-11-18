@@ -10,8 +10,8 @@ import { segmentRecipients, type Segment } from "@/lib/automation-segments";
 /** Quản lý CHIẾN DỊCH automation: tạo, cài đặt, nhân bản, xóa, đổi thứ tự bước, gửi theo nhóm khách */
 
 const str = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
-const TRIGGERS = ["signup", "enrolled", "order_pending", "order_paid", "inactive", "expiring", "course_completed", "membership_started"];
-const GOALS = ["", "enrolled", "order_paid", "active_again"];
+const TRIGGERS = ["signup", "enrolled", "order_pending", "order_paid", "inactive", "expiring", "course_completed", "membership_started", "lead_registered"];
+const GOALS = ["", "enrolled", "order_paid", "active_again", "paid_any"];
 
 function refresh(id?: string) {
   revalidatePath("/admin/automation");
@@ -94,7 +94,7 @@ export async function duplicateFlow(form: FormData) {
   if (error) throw new Error(error.message);
   if (steps?.length) {
     await db.from("automation_steps").insert(
-      steps.map((s) => ({ flow_id: copy.id, position: s.position, delay_minutes: s.delay_minutes, channel: s.channel, subject: s.subject, body: s.body, transactional: s.transactional, is_active: s.is_active })),
+      steps.map((s) => ({ flow_id: copy.id, position: s.position, delay_minutes: s.delay_minutes, channel: s.channel, subject: s.subject, body: s.body, transactional: s.transactional, is_active: s.is_active, zns_template_id: s.zns_template_id })),
     );
   }
   refresh();

@@ -4,6 +4,7 @@ import { runAutomation, scanTimeTriggers } from "@/lib/automation";
 import { syncAllMembers } from "@/lib/membership";
 import { announceDuePosts } from "@/lib/blog-publish";
 import { runSocial } from "@/lib/social";
+import { scanPosLeads } from "@/lib/pos-leads";
 
 /**
  * Cron chạy mỗi 5 phút (netlify/functions/automation-cron.mts gọi vào đây).
@@ -34,6 +35,8 @@ export async function GET(req: Request) {
   const social = await runSocial().catch((e) => ({ error: (e as Error).message }));
   const scan = hourly ? await scanTimeTriggers() : null;
   const members = hourly ? await syncAllMembers() : null;
+  // Đơn ladi Webcake mới chưa thanh toán (Pancake POS) -> chuỗi chăm sóc email + Zalo
+  const leads = await scanPosLeads().catch((e) => ({ error: (e as Error).message }));
   const sent = await runAutomation();
-  return NextResponse.json({ ok: true, blog, social, scan, members, sent });
+  return NextResponse.json({ ok: true, blog, social, scan, members, leads, sent });
 }

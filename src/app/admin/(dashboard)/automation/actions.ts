@@ -5,6 +5,7 @@ import { cleanEmailHtml, fromFriendly } from "@/lib/email-tokens";
 import { assertAdmin } from "@/lib/admin-guard";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import { deliverStep } from "@/lib/automation";
+import { isZnsConfigured, normPhone } from "@/lib/zalo";
 
 const str = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
 
@@ -41,7 +42,8 @@ export async function saveStep(form: FormData) {
   const flowId = str(form, "flow_id");
   const row = {
     delay_minutes: toMinutes(str(form, "delay"), str(form, "unit")),
-    channel: form.get("channel") === "telegram" ? "telegram" : "email",
+    channel: form.get("channel") === "telegram" ? "telegram" : form.get("channel") === "zalo" ? "zalo" : "email",
+    zns_template_id: str(form, "zns_template_id") || null,
     // Chữ thân thiện [Tên khách]… -> mã {{ten}}…; lọc rác khi dán từ Word/Gmail
     subject: fromFriendly(str(form, "subject")) || null,
     body: fromFriendly(cleanEmailHtml(String(form.get("body") ?? ""))),
@@ -71,20 +73,25 @@ export type TestState = { message?: string; error?: string };
 export async function sendTestStep(_prev: TestState, form: FormData): Promise<TestState> {
   await assertAdmin();
   const to = str(form, "to").toLowerCase();
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) return { error: "Email nhận thử chưa đúng" };
   const { data: step } = await createAdminSupabase()
     .from("automation_steps")
-    .select("id, flow_id, position, delay_minutes, channel, subject, body, transactional")
+    .select("id, flow_id, position, delay_minutes, channel, subject, body, transactional, zns_template_id")
     .eq("id", str(form, "step_id"))
     .single();
   if (!step) return { error: "Không thấy bước" };
+  const zalo = step.channel === "zalo";
+  const phone = zalo ? normPhone(to) : null;
+  if (zalo && !phone) return { error: "Bước Zalo: nhập SĐT nhận thử (0xxxxxxxxx)" };
+  if (!zalo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) return { error: "Email nhận thử chưa đúng" };
   const ok = await deliverStep(step as Parameters<typeof deliverStep>[0], {
     id: "test",
     flow_id: step.flow_id,
-    email: to,
+    email: zalo ? "" : to,
+    phone,
     context: { ten: "Anh Tùng", khoa_hoc: "Facebook Ads Từ Cơ Bản Đến Nâng Cao", course_slug: "facebook-ads-co-ban-den-nang-cao", ma_don: "LBT123456", so_tien: "199.000 ₫", ngay_het_han: "31/12/2026", goi_thanh_vien: "LBT Member 12 tháng" },
   }, { test: true });
   refresh(step.flow_id);
+  if (zalo) return ok ? { message: step.zns_template_id && isZnsConfigured() ? `Đã gửi ZNS thử tới ${phone} (lỗi ZNS sẽ tự vào hàng chờ Zalo cá nhân)` : `Đã đưa tin thử cho ${phone} vào hàng chờ Zalo cá nhân` } : { error: "Không đưa được vào hàng chờ Zalo" };
   return ok ? { message: `Đã gửi thử tới ${to}` } : { error: "Gửi thất bại — xem lỗi ở nhật ký bên dưới (thường do chưa có RESEND_API_KEY)" };
 }
 

@@ -1,6 +1,8 @@
 import "server-only";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import { fromFriendly } from "@/lib/email-tokens";
+import { posPaidSince } from "@/lib/pos-leads";
+import { htmlToText, isZnsConfigured, normPhone, queueZalo, sendZns } from "@/lib/zalo";
 import { appBase, emailLayout, isEmailConfigured, notifyTelegram, publicBase, sendEmail, unsubscribeUrl } from "@/lib/email";
 
 /**
@@ -22,7 +24,8 @@ export type Trigger =
   | "inactive"
   | "expiring"
   | "course_completed"
-  | "membership_started";
+  | "membership_started"
+  | "lead_registered";
 
 export const TRIGGER_LABEL: Record<Trigger, string> = {
   signup: "Tạo tài khoản (chưa mua)",
@@ -33,6 +36,7 @@ export const TRIGGER_LABEL: Record<Trigger, string> = {
   expiring: "Còn 7 ngày hết hạn khóa",
   course_completed: "Học xong 100% khóa",
   membership_started: "Kích hoạt gói Member",
+  lead_registered: "Điền form ladi Webcake (chưa thanh toán)",
 };
 
 export type AutomationContext = Partial<{
@@ -81,7 +85,7 @@ const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&l
 /** Đưa 1 người vào các kịch bản đang BẬT của sự kiện này. Không bao giờ ném lỗi ra ngoài (không làm hỏng luồng mua/đăng ký). */
 export async function enqueueAutomation(
   trigger: Trigger,
-  input: { email: string; userId?: string | null; context?: AutomationContext; dedupeKey: string },
+  input: { email: string; phone?: string | null; userId?: string | null; context?: AutomationContext; dedupeKey: string },
 ) {
   try {
     const db = createAdminSupabase();
@@ -105,6 +109,7 @@ export async function enqueueAutomation(
           flow_id: f.id,
           user_id: input.userId ?? null,
           email: input.email.trim().toLowerCase(),
+          phone: normPhone(input.phone),
           context: input.context ?? {},
           dedupe_key: input.dedupeKey,
           next_run_at: new Date(Date.now() + first.delay_minutes * 60_000).toISOString(),
@@ -118,7 +123,7 @@ export async function enqueueAutomation(
 }
 
 /** Dừng các kịch bản có mục tiêu `goal` của 1 người (vd đã mua -> dừng chuỗi mời mua) */
-export async function stopAutomation(goal: "enrolled" | "order_paid" | "active_again", match: { email?: string; orderId?: string }) {
+export async function stopAutomation(goal: "enrolled" | "order_paid" | "active_again" | "paid_any", match: { email?: string | null; phone?: string | null; orderId?: string }) {
   try {
     const db = createAdminSupabase();
     const { data: flows } = await db.from("automation_flows").select("id").eq("goal", goal);
@@ -128,8 +133,12 @@ export async function stopAutomation(goal: "enrolled" | "order_paid" | "active_a
       .update({ status: "stopped", stop_reason: `goal:${goal}`, updated_at: new Date().toISOString() })
       .in("flow_id", flows.map((f) => f.id))
       .eq("status", "active");
+    const email = match.email?.trim().toLowerCase() || "";
+    const phone = normPhone(match.phone);
     if (match.orderId) q = q.eq("context->>order_id", match.orderId);
-    else if (match.email) q = q.eq("email", match.email.trim().toLowerCase());
+    else if (email.includes("@") && phone) q = q.or(`email.eq.${email},phone.eq.${phone}`);
+    else if (email.includes("@")) q = q.eq("email", email);
+    else if (phone) q = q.eq("phone", phone);
     else return;
     await q;
   } catch (e) {
@@ -142,11 +151,12 @@ type Run = {
   flow_id: string;
   user_id: string | null;
   email: string;
+  phone: string | null;
   context: AutomationContext;
   step_index: number;
   created_at: string;
 };
-type Step = { id: string; position: number; delay_minutes: number; channel: "email" | "telegram"; subject: string | null; body: string; transactional: boolean };
+type Step = { id: string; position: number; delay_minutes: number; channel: "email" | "telegram" | "zalo"; subject: string | null; body: string; transactional: boolean; zns_template_id?: string | null };
 
 /** Thay biến {{ten}}, {{link_hoc}}… — giá trị được escape HTML */
 export function renderTemplate(tpl: string, vars: Record<string, string>) {
@@ -183,6 +193,32 @@ function track(html: string, messageId: string) {
   return `${withClicks}<img src="${app}/api/email/o/${messageId}" width="1" height="1" alt="" style="display:none">`;
 }
 
+/** Khách đã trả tiền đơn nào / đã mua khóa nào chưa (theo email hoặc SĐT), tính từ `since` nếu có. Xem cả web học lẫn Pancake POS. */
+export async function paidAny(email: string | null | undefined, phone: string | null | undefined, since?: Date) {
+  const db = createAdminSupabase();
+  const e = email?.trim().toLowerCase() || "";
+  const p = normPhone(phone);
+  if (!e.includes("@") && !p) return false;
+  const filters = [e.includes("@") ? `customer_email.eq.${e}` : null, p ? `customer_phone.eq.${p}` : null].filter(Boolean).join(",");
+  let oq = db.from("orders").select("id", { count: "exact", head: true }).eq("status", "paid").or(filters);
+  if (since) oq = oq.gte("created_at", since.toISOString());
+  const { count } = await oq;
+  if ((count ?? 0) > 0) return true;
+  if (p && (await posPaidSince(p, since))) return true;
+  if (!e.includes("@")) return false;
+  const { data: prof } = await db.from("profiles").select("id").eq("email", e).maybeSingle();
+  if (!prof) return false;
+  let eq = db
+    .from("enrollments")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", prof.id)
+    .eq("status", "active")
+    .or("source.is.null,source.neq.tang-khi-dang-ky");
+  if (since) eq = eq.gte("enrolled_at", since.toISOString());
+  const { count: enr } = await eq;
+  return (enr ?? 0) > 0;
+}
+
 /** Mục tiêu đã đạt chưa (kiểm tra lại lúc gửi, phòng khi bỏ lỡ sự kiện dừng) */
 async function goalReached(goal: string | null, run: Run) {
   if (!goal) return false;
@@ -200,6 +236,8 @@ async function goalReached(goal: string | null, run: Run) {
     const { data } = await db.from("orders").select("status").eq("id", run.context.order_id).maybeSingle();
     return !data || data.status !== "pending";
   }
+  // Trả tiền trong khoảng 12 giờ trước khi vào chuỗi trở đi (đơn đặt rồi mới thành lead, khách mua khóa khác từ lâu thì vẫn chăm sóc)
+  if (goal === "paid_any") return paidAny(run.email, run.phone, new Date(new Date(run.created_at).getTime() - 12 * 3600_000));
   if (goal === "active_again" && run.user_id) {
     const { count } = await db
       .from("progress")
@@ -212,10 +250,12 @@ async function goalReached(goal: string | null, run: Run) {
 }
 
 /** Gửi 1 bước cho 1 người. Trả về id tin nhắn đã ghi. */
-export async function deliverStep(step: Step, run: Pick<Run, "id" | "flow_id" | "email" | "context">, opts: { test?: boolean } = {}) {
+export async function deliverStep(step: Step, run: Pick<Run, "id" | "flow_id" | "email" | "context"> & { phone?: string | null }, opts: { test?: boolean } = {}) {
   const db = createAdminSupabase();
   const vars = templateVars(run.email, run.context);
   const subject = renderTemplate(step.subject || "(không tiêu đề)", vars);
+
+  if (step.channel === "zalo") return deliverZalo(step, run, vars, subject, opts);
 
   if (step.channel === "telegram") {
     const text = renderTemplate(step.body.replace(/<[^>]+>/g, ""), vars);
@@ -225,6 +265,14 @@ export async function deliverStep(step: Step, run: Pick<Run, "id" | "flow_id" | 
       subject, status: r.ok ? "sent" : "failed", error: r.ok ? null : r.error,
     });
     return r.ok;
+  }
+
+  if (!run.email.includes("@")) {
+    // Lead chỉ để lại SĐT -> bỏ qua bước email, chuỗi vẫn đi tiếp
+    await db.from("automation_messages").insert({
+      run_id: opts.test ? null : run.id, step_id: step.id, flow_id: run.flow_id, email: run.email, phone: run.phone ?? null, subject, status: "skipped", error: "Khách không để lại email",
+    });
+    return true;
   }
 
   const { data: msg } = await db
@@ -245,6 +293,42 @@ export async function deliverStep(step: Step, run: Pick<Run, "id" | "flow_id" | 
   return r.ok;
 }
 
+/** Bước Zalo: ZNS nếu bước có mã mẫu + OA đã cấu hình, không thì vào hàng chờ Zalo cá nhân. Không có SĐT -> bỏ qua. */
+async function deliverZalo(
+  step: Step,
+  run: Pick<Run, "id" | "flow_id" | "email" | "context"> & { phone?: string | null },
+  vars: Record<string, string>,
+  subject: string,
+  opts: { test?: boolean },
+) {
+  const db = createAdminSupabase();
+  const phone = normPhone(run.phone);
+  const base = { run_id: opts.test ? null : run.id, step_id: step.id, flow_id: run.flow_id, email: run.email, phone, subject, channel: "zalo" };
+  if (!phone) {
+    await db.from("automation_messages").insert({ ...base, status: "skipped", error: "Khách không để lại SĐT" });
+    return true;
+  }
+  const { data: msg } = await db.from("automation_messages").insert({ ...base, status: "queued" }).select("id").single();
+  let znsError = "";
+  if (step.zns_template_id && isZnsConfigured()) {
+    const r = await sendZns({ phone, templateId: step.zns_template_id, vars, trackingId: msg?.id ?? run.id });
+    if (r.ok) {
+      if (msg) await db.from("automation_messages").update({ status: "sent", provider_id: r.id }).eq("id", msg.id);
+      return true;
+    }
+    znsError = r.error;
+  }
+  const text = htmlToText(renderTemplate(step.body, vars));
+  const q = await queueZalo({ phone, name: run.context.ten, text: opts.test ? `[THỬ] ${text}` : text, runId: opts.test ? null : run.id, messageId: msg?.id });
+  if (msg) {
+    await db
+      .from("automation_messages")
+      .update(q.ok ? { status: "queued", error: znsError ? `ZNS lỗi, chuyển Zalo cá nhân: ${znsError}` : null } : { status: "failed", error: q.error })
+      .eq("id", msg.id);
+  }
+  return q.ok;
+}
+
 /** Xử lý các bước đến hạn. Gọi từ cron. */
 export async function runAutomation(limit = 40) {
   const db = createAdminSupabase();
@@ -254,7 +338,7 @@ export async function runAutomation(limit = 40) {
 
   const { data: runs } = await db
     .from("automation_runs")
-    .select("id, flow_id, user_id, email, context, step_index, created_at")
+    .select("id, flow_id, user_id, email, phone, context, step_index, created_at")
     .eq("status", "active")
     .lte("next_run_at", now.toISOString())
     .order("next_run_at")
@@ -264,7 +348,7 @@ export async function runAutomation(limit = 40) {
   const flowIds = [...new Set(runs.map((r) => r.flow_id))];
   const [{ data: flows }, { data: steps }, { data: suppressed }] = await Promise.all([
     db.from("automation_flows").select("id, is_active, goal").in("id", flowIds),
-    db.from("automation_steps").select("id, flow_id, position, delay_minutes, channel, subject, body, transactional").in("flow_id", flowIds).eq("is_active", true).order("position"),
+    db.from("automation_steps").select("id, flow_id, position, delay_minutes, channel, subject, body, transactional, zns_template_id").in("flow_id", flowIds).eq("is_active", true).order("position"),
     db.from("email_suppressions").select("email").in("email", [...new Set(runs.map((r) => r.email))]),
   ]);
   const flowById = new Map((flows ?? []).map((f) => [f.id, f]));
@@ -321,13 +405,30 @@ export async function runAutomation(limit = 40) {
         .from("automation_messages")
         .select("id", { count: "exact", head: true })
         .eq("email", run.email)
+        .eq("channel", "email")
         .eq("status", "sent")
         .gt("sent_at", since)
         .not("run_id", "is", null);
-      if ((count ?? 0) > 0 && step.channel === "email") {
+      if ((count ?? 0) > 0 && step.channel === "email" && run.email.includes("@")) {
         await set({ next_run_at: nextSendable(new Date(now.getTime() + FREQUENCY_HOURS * 3600_000)).toISOString() });
         report.deferred++;
         continue;
+      }
+      // Zalo: tối đa 1 tin chăm sóc / 20 giờ / SĐT (khách vừa có lead ladi vừa có đơn web không bị nhắn dồn)
+      if (step.channel === "zalo" && run.phone) {
+        const { count: z } = await db
+          .from("automation_messages")
+          .select("id", { count: "exact", head: true })
+          .eq("phone", run.phone)
+          .eq("channel", "zalo")
+          .in("status", ["sent", "queued"])
+          .gt("sent_at", since)
+          .not("run_id", "is", null);
+        if ((z ?? 0) > 0) {
+          await set({ next_run_at: nextSendable(new Date(now.getTime() + FREQUENCY_HOURS * 3600_000)).toISOString() });
+          report.deferred++;
+          continue;
+        }
       }
     }
 

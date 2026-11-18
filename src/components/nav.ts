@@ -13,6 +13,7 @@ import {
   LayoutTemplate,
   Radar,
   Send,
+  MessageCircle,
   type LucideIcon,
 } from "lucide-react";
 
@@ -37,5 +38,6 @@ export const navItems: NavItem[] = [
   { href: "/admin/blog", label: "Blog & trang", icon: Newspaper },
   { href: "/admin/reviews", label: "Cảm nhận học viên", icon: MessageSquareQuote },
   { href: "/admin/automation", label: "Automation", icon: Zap },
+  { href: "/admin/zalo", label: "Kênh Zalo", icon: MessageCircle },
   { href: "/admin/api", label: "API kết nối", icon: Plug },
 ];
