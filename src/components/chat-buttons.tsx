@@ -10,8 +10,8 @@ const MESSENGER_URL = "https://m.me/107057668896782";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
-const GREETING = "Chào anh/chị, em là trợ lý AI của Học viện Lê Bá Tùng. Anh/chị cần tư vấn khóa học, học thử hay cách thanh toán ạ?";
-const SUGGESTIONS = ["Người mới nên học khóa nào?", "Học thử miễn phí thế nào?", "Giá khóa Facebook Ads Chuyên Sâu?", "Thanh toán và vào học ra sao?"];
+const GREETING = "Chào anh/chị, em là trợ lý AI của Học viện Lê Bá Tùng. Anh/chị đã chạy quảng cáo Facebook bao giờ chưa, hay đang bán gì để em tư vấn đúng ạ?";
+const SUGGESTIONS = ["Em chưa chạy quảng cáo bao giờ", "Em chạy rồi mà không ra đơn", "Khóa Facebook Ads Chuyên Sâu giá bao nhiêu?", "Em đã thanh toán, vào học thế nào?"];
 const STORE_KEY = "lbt_tro_ly";
 
 function MessengerIcon() {
@@ -72,7 +72,7 @@ function AiChat({ onClose }: { onClose: () => void }) {
       const res = await fetch("/api/tro-ly", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: history.slice(-12) }),
+        body: JSON.stringify({ messages: history.slice(-12), trang: window.location.pathname }),
       });
       if (!res.body) throw new Error("no body");
       const reader = res.body.getReader();
@@ -117,9 +117,22 @@ function AiChat({ onClose }: { onClose: () => void }) {
         {msgs.map((m, i) =>
           m.role === "user" ? (
             <div key={i} className="ml-auto max-w-[85%] rounded-2xl rounded-tr-sm bg-[#0068ff] px-3 py-2 whitespace-pre-wrap text-white">{m.content}</div>
+          ) : m.content.trim() ? (
+            // Mỗi dòng của trợ lý = 1 bong bóng riêng (chat câu ngắn như người thật)
+            <div key={i} className="space-y-1.5">
+              {m.content
+                .split(/\r?\n/)
+                .map((line) => line.trim())
+                .filter(Boolean)
+                .map((line, j) => (
+                  <div key={j} className="w-fit max-w-[85%] rounded-2xl rounded-tl-sm bg-white px-3 py-2 shadow-sm">
+                    <Linkify text={line} />
+                  </div>
+                ))}
+            </div>
           ) : (
-            <div key={i} className="max-w-[85%] rounded-2xl rounded-tl-sm bg-white px-3 py-2 whitespace-pre-wrap shadow-sm">
-              {m.content ? <Linkify text={m.content} /> : <LoaderCircle className="size-4 animate-spin text-gray-400" />}
+            <div key={i} className="w-fit max-w-[85%] rounded-2xl rounded-tl-sm bg-white px-3 py-2 shadow-sm">
+              <LoaderCircle className="size-4 animate-spin text-gray-400" />
             </div>
           ),
         )}
