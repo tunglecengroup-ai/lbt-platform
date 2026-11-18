@@ -120,7 +120,7 @@ function AiChat({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div className="fixed bottom-20 left-4 z-[60] flex h-[min(72dvh,560px)] sm:bottom-4 w-[min(calc(100vw-2rem),380px)] flex-col overflow-hidden rounded-2xl border bg-white text-gray-900 shadow-2xl">
+    <div className="fixed right-4 bottom-20 z-[60] flex h-[min(calc(100dvh-7rem),560px)] w-[min(calc(100vw-2rem),380px)] flex-col overflow-hidden rounded-2xl border bg-white text-gray-900 shadow-2xl">
       <div className="flex items-center gap-3 bg-gradient-to-r from-[#0f1424] to-[#1d2b55] px-4 py-3 text-white">
         <span className="flex size-9 items-center justify-center rounded-full bg-[#f5c451] text-black"><Bot className="size-5" /></span>
         <div className="min-w-0 flex-1">
@@ -194,7 +194,7 @@ function AiChat({ onClose }: { onClose: () => void }) {
 /** Trang không hiện nút (khu quản trị, trang duyệt bài nội bộ) */
 const HIDDEN = (p: string) => p.startsWith("/admin") || p.startsWith("/duyet-") || p.startsWith("/l/xem-truoc");
 
-/** Nút nổi góc dưới bên TRÁI trên toàn web: Trợ lý AI + nhắn Fanpage (Messenger) */
+/** Nút nổi góc dưới bên PHẢI trên toàn web (đặt cao hơn logo Netlify ở góc phải dưới): Trợ lý AI + nhắn Fanpage (Messenger) */
 export function ChatButtons() {
   const [open, setOpen] = useState(false);
   const pathname = usePathname() ?? "";
@@ -206,7 +206,7 @@ export function ChatButtons() {
   if (open) return <AiChat onClose={() => setOpen(false)} />;
 
   return (
-    <div className="fixed bottom-4 left-4 z-50 flex flex-col gap-3 print:hidden">
+    <div className="fixed right-4 bottom-20 z-50 flex flex-col items-end gap-3 print:hidden">
       <button
         type="button"
         onClick={() => {
@@ -214,7 +214,7 @@ export function ChatButtons() {
           track("contact", { channel: "ai" });
         }}
         aria-label="Trợ lý AI"
-        className="group flex items-center gap-2 text-left"
+        className="group flex flex-row-reverse items-center gap-2 text-right"
       >
         <span className="relative flex size-12 items-center justify-center rounded-full bg-[#f5c451] text-black shadow-lg ring-2 ring-white transition-transform group-hover:scale-110">
           <span className="absolute inset-0 -z-10 animate-ping rounded-full bg-[#f5c451] opacity-40" />
@@ -230,7 +230,7 @@ export function ChatButtons() {
           rel="noopener"
           aria-label={it.label}
           onClick={() => track("contact", { channel: it.key })}
-          className="group flex items-center gap-2"
+          className="group flex flex-row-reverse items-center gap-2"
         >
           <span className={`relative flex size-12 items-center justify-center rounded-full text-white shadow-lg ring-2 ring-white transition-transform group-hover:scale-110 ${it.bg}`}>
             <span className={`absolute inset-0 -z-10 animate-ping rounded-full opacity-40 ${it.bg}`} />
