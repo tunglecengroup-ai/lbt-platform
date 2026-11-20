@@ -32,7 +32,7 @@ export async function loadLanding(slug: string, allowDraft = false) {
       db.from("courses").select("*").eq("id", landing.course_id).maybeSingle(),
       db.from("chapters").select("id, title, position").eq("course_id", landing.course_id),
       db.from("lessons").select(LESSON_PUBLIC_COLUMNS).eq("course_id", landing.course_id),
-      db.from("reviews").select("*").eq("course_id", landing.course_id).order("position").limit(12),
+      db.from("reviews").select("*").eq("course_id", landing.course_id).eq("is_hidden", false).order("position").limit(12),
     ]);
     if (course) {
       const c = course as CourseRow;

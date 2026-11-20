@@ -31,6 +31,9 @@ export default async function AutomationPage() {
     db.from("automation_messages").select("id, flow_id, email, subject, status, error, sent_at, opened_at, clicked_at").gte("sent_at", since).order("sent_at", { ascending: false }).limit(2000),
     db.from("email_suppressions").select("email", { count: "exact", head: true }),
   ]);
+  const { count: accountTotal } = await db.from("profiles").select("id", { count: "exact", head: true });
+  const accountCount = accountTotal ?? 0;
+  const dailyCap = Math.max(0, Number(process.env.AUTOMATION_DAILY_CAP ?? 40));
   const sent = (msgs ?? []).filter((m) => m.status === "sent");
   const opened = sent.filter((m) => m.opened_at).length;
   const clicked = sent.filter((m) => m.clicked_at).length;
@@ -72,6 +75,25 @@ export default async function AutomationPage() {
                 </div>
               </div>
             ))}
+          </CardContent>
+        </Card>
+
+        {/* Tạo nhanh: email gửi cho TẤT CẢ tài khoản đăng ký trên web */}
+        <Card className="border-primary/40 bg-primary/5 mb-6">
+          <CardContent className="flex flex-wrap items-center gap-4 pt-6">
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold">Gửi email cho tất cả tài khoản đăng ký trên web ({accountCount.toLocaleString("vi-VN")} người)</p>
+              <p className="text-muted-foreground text-sm">
+                Tạo chiến dịch gửi theo nhóm &quot;Tất cả tài khoản&quot;: soạn email, gửi thử cho mình, rồi bấm Gửi. Người đã hủy nhận email tự được bỏ qua.
+                Mỗi ngày gửi tối đa theo hạn mức email (hiện {dailyCap}/ngày), phần còn lại tự gửi tiếp hôm sau.
+              </p>
+            </div>
+            <form action={createFlow}>
+              <input type="hidden" name="kind" value="broadcast" />
+              <input type="hidden" name="segment_type" value="all_accounts" />
+              <input type="hidden" name="name" value={`Email gửi tất cả tài khoản ${new Date().toLocaleDateString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" })}`} />
+              <Button type="submit">Soạn email gửi tất cả</Button>
+            </form>
           </CardContent>
         </Card>
 

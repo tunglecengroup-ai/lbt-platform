@@ -1,4 +1,4 @@
-import { Plus, Star, Trash2 } from "lucide-react";
+import { Eye, EyeOff, Plus, Star, Trash2 } from "lucide-react";
 import { Topbar, MobileHeading } from "@/components/topbar";
 import { PageBody, SectionTitle } from "@/components/ui/page";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,7 +8,7 @@ import { Field, inputClass } from "@/components/ui/field";
 import { ConfirmButton } from "@/components/confirm-button";
 import { createAdminSupabase } from "@/lib/supabase/admin";
 import type { ReviewRow } from "@/lib/types";
-import { createReview, deleteReview, toggleFeatured } from "./actions";
+import { createReview, deleteReview, toggleFeatured, toggleHidden } from "./actions";
 
 export default async function AdminReviewsPage() {
   const db = createAdminSupabase();
@@ -57,12 +57,12 @@ export default async function AdminReviewsPage() {
           </CardContent>
         </Card>
 
-        <SectionTitle title={`Tất cả (${list.length})`} />
+        <SectionTitle title={`Tất cả (${list.length}) · đang hiện ${list.filter((r) => !r.is_hidden).length} · đang ẩn ${list.filter((r) => r.is_hidden).length}`} />
         <Card className="divide-y">
           {list.length === 0 && <p className="text-muted-foreground p-4 text-sm">Chưa có cảm nhận nào.</p>}
           {list.map((r) => (
-            <div key={r.id} className="flex flex-wrap items-start gap-3 px-4 py-3">
-              <div className="min-w-0 flex-1">
+            <div key={r.id} className={`flex flex-wrap items-start gap-3 px-4 py-3 ${r.is_hidden ? "bg-muted/40" : ""}`}>
+              <div className={`min-w-0 flex-1 ${r.is_hidden ? "opacity-50" : ""}`}>
                 <p className="text-sm font-medium">
                   {r.name}
                   {r.role && <span className="text-muted-foreground font-normal"> — {r.role}</span>}
@@ -71,12 +71,21 @@ export default async function AdminReviewsPage() {
                 <p className="text-muted-foreground mt-0.5 line-clamp-2 text-sm">{r.content}</p>
                 <p className="text-muted-foreground mt-1 text-xs">{r.course_id ? courseName.get(r.course_id) : "Cảm nhận chung"}</p>
               </div>
+              <form action={toggleHidden}>
+                <input type="hidden" name="id" value={r.id} />
+                <input type="hidden" name="hidden" value={String(!!r.is_hidden)} />
+                <button type="submit" title={r.is_hidden ? "Bấm để HIỆN lại trên web" : "Bấm để ẨN khỏi toàn bộ web"}>
+                  <Badge tone={r.is_hidden ? "neutral" : "success"}>
+                    {r.is_hidden ? <EyeOff className="size-3" /> : <Eye className="size-3" />} {r.is_hidden ? "Đang ẩn" : "Đang hiện"}
+                  </Badge>
+                </button>
+              </form>
               <form action={toggleFeatured}>
                 <input type="hidden" name="id" value={r.id} />
                 <input type="hidden" name="featured" value={String(r.is_featured)} />
-                <button type="submit" title="Bật/tắt hiện ở trang chủ">
-                  <Badge tone={r.is_featured ? "warning" : "neutral"}>
-                    <Star className="size-3" /> {r.is_featured ? "Trang chủ" : "Ẩn khỏi trang chủ"}
+                <button type="submit" title={r.is_featured ? "Bấm để bỏ khỏi trang chủ" : "Bấm để đưa lên trang chủ"} disabled={!!r.is_hidden}>
+                  <Badge tone={r.is_featured && !r.is_hidden ? "warning" : "neutral"}>
+                    <Star className="size-3" /> {r.is_featured ? "Trang chủ: có" : "Trang chủ: không"}
                   </Badge>
                 </button>
               </form>

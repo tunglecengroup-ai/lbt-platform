@@ -6,7 +6,7 @@ export type StudentFilter = {
   q: string;
   course: string; // course id
   status: "" | "dang-hoc" | "het-han" | "da-khoa";
-  progress: "" | "chua-hoc" | "dang-hoc" | "hoan-thanh";
+  progress: "" | "chua-hoc" | "da-bat-dau" | "dang-hoc" | "hoan-thanh";
   member: "" | "member" | "khong";
   from: string; // yyyy-mm-dd (ngày ghi danh)
   to: string;
@@ -19,7 +19,7 @@ export function parseStudentFilter(sp: Record<string, string | string[] | undefi
     q: s("q").toLowerCase(),
     course: s("course"),
     status: pick(s("status"), ["dang-hoc", "het-han", "da-khoa"] as const),
-    progress: pick(s("progress"), ["chua-hoc", "dang-hoc", "hoan-thanh"] as const),
+    progress: pick(s("progress"), ["chua-hoc", "da-bat-dau", "dang-hoc", "hoan-thanh"] as const),
     member: pick(s("member"), ["member", "khong"] as const),
     from: /^\d{4}-\d{2}-\d{2}$/.test(s("from")) ? s("from") : "",
     to: /^\d{4}-\d{2}-\d{2}$/.test(s("to")) ? s("to") : "",
@@ -57,7 +57,7 @@ export type StudentRow = Enrollment & {
 export async function loadStudents(f: StudentFilter) {
   const db = createAdminSupabase();
   const now = new Date();
-  const [courses, enrollments, profiles, lessons, counts, members] = await Promise.all([
+  const [courses, enrollments, profiles, lessons, counts, members, legacy, orderNames] = await Promise.all([
     db.from("courses").select("id, title").order("position").then((r) => r.data ?? []),
     fetchAll<Enrollment>((a, b) =>
       db.from("enrollments").select("id, user_id, course_id, status, enrolled_at, expires_at, source").order("enrolled_at", { ascending: false }).range(a, b),
@@ -68,7 +68,30 @@ export async function loadStudents(f: StudentFilter) {
     db.from("lessons").select("course_id").then((r) => r.data ?? []),
     db.rpc("progress_counts").then((r) => (r.data ?? []) as { user_id: string; course_id: string; done: number; last_at: string | null }[]),
     db.from("memberships").select("user_id, expires_at, status").then((r) => r.data ?? []),
+    // Tên/SĐT dự phòng khi hồ sơ chưa có: danh sách học viên cũ (sp2) + đơn hàng
+    fetchAll<{ email: string; full_name: string | null; phone: string | null }>((a, b) =>
+      db.from("legacy_buyers").select("email, full_name, phone").order("email").range(a, b),
+    ).catch(() => []),
+    fetchAll<{ customer_email: string | null; customer_name: string | null; customer_phone: string | null }>((a, b) =>
+      db.from("orders").select("customer_email, customer_name, customer_phone").order("created_at", { ascending: false }).range(a, b),
+    ),
   ]);
+
+  // Hồ sơ thiếu tên / SĐT -> lấy từ đơn hàng hoặc danh sách sp2 (chỉ để HIỂN THỊ, không ghi đè hồ sơ)
+  const alt = new Map<string, { name?: string; phone?: string }>();
+  for (const l of legacy) alt.set(l.email.toLowerCase(), { name: l.full_name ?? undefined, phone: l.phone ?? undefined });
+  for (const o of orderNames) {
+    const k = (o.customer_email ?? "").toLowerCase();
+    if (!k) continue;
+    const cur = alt.get(k) ?? {};
+    alt.set(k, { name: cur.name || o.customer_name || undefined, phone: cur.phone || o.customer_phone || undefined });
+  }
+  for (const p of profiles) {
+    const a = alt.get((p.email ?? "").toLowerCase());
+    if (!a) continue;
+    if (!p.full_name?.trim() && a.name?.trim()) p.full_name = a.name.trim();
+    if (!p.phone?.trim() && a.phone?.trim()) p.phone = a.phone.trim();
+  }
 
   const profileById = new Map(profiles.map((p) => [p.id, p]));
   const courseById = new Map(courses.map((c) => [c.id, c.title]));
@@ -107,6 +130,7 @@ export async function loadStudents(f: StudentFilter) {
     if (f.course && r.course_id !== f.course) return false;
     if (f.status && r.state !== f.status) return false;
     if (f.progress === "chua-hoc" && r.done > 0) return false;
+    if (f.progress === "da-bat-dau" && r.done === 0) return false;
     if (f.progress === "dang-hoc" && (r.done === 0 || r.pct >= 100)) return false;
     if (f.progress === "hoan-thanh" && r.pct < 100) return false;
     if (f.member === "member" && !r.isMember) return false;

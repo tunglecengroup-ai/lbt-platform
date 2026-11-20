@@ -28,6 +28,15 @@ export default async function StudentDetailPage({ params }: PageProps<"/admin/st
 
   const { data: profile } = await db.from("profiles").select("id, email, full_name, phone, created_at").eq("id", id).maybeSingle();
   if (!profile) notFound();
+  // Hồ sơ thiếu tên / SĐT -> lấy từ đơn hàng hoặc danh sách học viên cũ sp2 (chỉ hiển thị)
+  if (!profile.full_name?.trim() || !profile.phone?.trim()) {
+    const [{ data: o }, { data: lb }] = await Promise.all([
+      db.from("orders").select("customer_name, customer_phone").ilike("customer_email", profile.email).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+      db.from("legacy_buyers").select("full_name, phone").eq("email", profile.email.toLowerCase()).maybeSingle(),
+    ]);
+    profile.full_name = profile.full_name?.trim() || o?.customer_name || lb?.full_name || null;
+    profile.phone = profile.phone?.trim() || o?.customer_phone || lb?.phone || null;
+  }
 
   const [{ data: enrollments }, { data: courses }, { data: progress }, { data: memberships }, { data: plans }, { data: orders }] = await Promise.all([
     db.from("enrollments").select("id, course_id, status, enrolled_at, expires_at").eq("user_id", id).order("enrolled_at", { ascending: false }),

@@ -39,6 +39,16 @@ export async function toggleFeatured(form: FormData) {
   refresh();
 }
 
+/** Ẩn / hiện cảm nhận trên toàn bộ web (ẩn thì vẫn giữ trong Admin) */
+export async function toggleHidden(form: FormData) {
+  await assertAdmin();
+  await createAdminSupabase()
+    .from("reviews")
+    .update({ is_hidden: str(form, "hidden") !== "true" })
+    .eq("id", str(form, "id"));
+  refresh();
+}
+
 export async function deleteReview(form: FormData) {
   await assertAdmin();
   await createAdminSupabase().from("reviews").delete().eq("id", str(form, "id"));

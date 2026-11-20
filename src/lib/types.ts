@@ -79,6 +79,8 @@ export type ReviewRow = {
   content: string;
   rating: number;
   is_featured: boolean;
+  /** Ẩn khỏi toàn bộ web (vẫn giữ trong Admin) */
+  is_hidden?: boolean;
   position: number;
 };
 

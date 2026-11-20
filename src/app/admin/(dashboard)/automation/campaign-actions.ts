@@ -34,7 +34,8 @@ export async function createFlow(form: FormData) {
       kind,
       trigger: kind === "broadcast" ? "manual" : trigger,
       is_active: false,
-      segment: kind === "broadcast" ? { type: "students" } : {},
+      // Gửi theo nhóm: mặc định TẤT CẢ tài khoản đăng ký trên web (đổi được trong trang cài đặt chiến dịch)
+      segment: kind === "broadcast" ? { type: str(form, "segment_type") || "all_accounts" } : {},
     })
     .select("id")
     .single();

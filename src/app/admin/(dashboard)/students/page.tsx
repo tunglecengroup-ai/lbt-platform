@@ -28,6 +28,8 @@ const stateBadge = {
 export default async function StudentsPage({ searchParams }: PageProps<"/admin/students">) {
   const sp = await searchParams;
   const f = parseStudentFilter(sp);
+  /** Bấm thẻ "Đăng ký chưa mua" -> chỉ hiện danh sách đó */
+  const view = sp.view === "chua-mua" ? "chua-mua" : "";
   const page = Math.max(1, Number(sp.page) || 1);
   const { courses, rows, signups, stats } = await loadStudents(f);
   const pages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
@@ -51,16 +53,22 @@ export default async function StudentsPage({ searchParams }: PageProps<"/admin/s
         )}
 
         <div className="mb-6 grid grid-cols-2 gap-4 xl:grid-cols-5">
-          <StatCard label="Học viên đang học" value={String(stats.students)} icon={GraduationCap} hint={`${stats.activeEnrollments} lượt ghi danh còn hạn`} />
-          <StatCard label="Đã bắt đầu học" value={String(stats.started)} icon={UserCheck} hint="có ít nhất 1 bài xong" />
-          <StatCard label="Hoàn thành khóa" value={String(stats.completed)} icon={Trophy} hint="100% bài học" />
-          <StatCard label="Thành viên Member" value={String(stats.members)} icon={Crown} hint="gói còn hạn" />
-          <StatCard label="Đăng ký chưa mua" value={String(stats.signups)} icon={UserPlus} hint="có tài khoản, chưa có khóa" />
+          <StatCard label="Học viên đang học" value={String(stats.students)} icon={GraduationCap} hint={`${stats.activeEnrollments} lượt ghi danh còn hạn`}
+            href="/admin/students?status=dang-hoc#danh-sach" active={f.status === "dang-hoc" && !f.progress && !f.member && !view} />
+          <StatCard label="Đã bắt đầu học" value={String(stats.started)} icon={UserCheck} hint="có ít nhất 1 bài xong"
+            href="/admin/students?status=dang-hoc&progress=da-bat-dau#danh-sach" active={f.progress === "da-bat-dau"} />
+          <StatCard label="Hoàn thành khóa" value={String(stats.completed)} icon={Trophy} hint="100% bài học"
+            href="/admin/students?status=dang-hoc&progress=hoan-thanh#danh-sach" active={f.progress === "hoan-thanh"} />
+          <StatCard label="Thành viên Member" value={String(stats.members)} icon={Crown} hint="gói còn hạn"
+            href="/admin/students?member=member#danh-sach" active={f.member === "member"} />
+          <StatCard label="Đăng ký chưa mua" value={String(stats.signups)} icon={UserPlus} hint="có tài khoản, chưa có khóa"
+            href="/admin/students?view=chua-mua#chua-mua" active={view === "chua-mua"} />
         </div>
 
         <div className="grid gap-6 xl:grid-cols-[1fr_380px]">
           <div className="min-w-0 space-y-6">
-            <Card className="overflow-hidden">
+            {view !== "chua-mua" && (
+            <Card id="danh-sach" className="scroll-mt-20 overflow-hidden">
               {/* Bộ lọc */}
               <form className="space-y-3 border-b p-4">
                 <div className="flex gap-2">
@@ -81,6 +89,7 @@ export default async function StudentsPage({ searchParams }: PageProps<"/admin/s
                   <select name="progress" defaultValue={f.progress} className={selectClass} aria-label="Tiến độ">
                     <option value="">Mọi tiến độ</option>
                     <option value="chua-hoc">Chưa học bài nào</option>
+                    <option value="da-bat-dau">Đã bắt đầu học</option>
                     <option value="dang-hoc">Đang học dở</option>
                     <option value="hoan-thanh">Hoàn thành 100%</option>
                   </select>
@@ -193,11 +202,13 @@ export default async function StudentsPage({ searchParams }: PageProps<"/admin/s
                 </div>
               )}
             </Card>
+            )}
 
-            <Card className="overflow-hidden">
+            <Card id="chua-mua" className={`scroll-mt-20 overflow-hidden ${view === "chua-mua" ? "border-primary" : ""}`}>
               <CardHeader>
                 <div>
                   <CardTitle>Đăng ký tài khoản, chưa có khóa ({signups.length})</CardTitle>
+                  {view === "chua-mua" && <Link href="/admin/students" className="text-primary text-sm hover:underline">Xem lại danh sách ghi danh</Link>}
                   <CardDescription>Tự đăng ký ở trang /hoc/dang-ky — bấm vào tên để thêm khóa hoặc xóa, hoặc gọi/Zalo chăm sóc.</CardDescription>
                 </div>
               </CardHeader>
